@@ -1,0 +1,17 @@
+{
+  "name": "waypoint-server",
+  "version": "1.0.0",
+  "description": "Waypoint API server — Node.js/Express backend for the Waypoint application tracker",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch index.js",
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "mongoose": "^8.5.0"
+  }
+}
