@@ -8,44 +8,57 @@ re-explaining the whole project.
 
 **Branch:** `dung/backend-core` → PR #1 (not yet merged into `main`)
 
+All backend FRs (1–14) are implemented and pass `npm run smoke`
+(59 end-to-end checks against a MongoDB-compatible database).
+
 ### Done
 
-- **Auth (FR-1, FR-2)**: `POST /api/auth/register`, `/login` — bcrypt
-  password hashing, server-side email/password validation
-  (`src/lib/validators.js`), JWT session tokens (`src/lib/jwt.js`)
-- **Role-based access (FR-11)**: `requireRole` middleware, used on
-  mentor-only and admin-only routes
-- **Applications (FR-3, FR-4)**: create, edit, move stage, delete
-- **Notes (FR-5)**: add/edit/delete — `notes[]` array on each
-  application
-- **Mentors (FR-8, FR-9)**: invite by email, accept invitation,
-  read-only pipeline view, roster
-- **Feedback (FR-10)**: `POST /api/applications/:id/feedback`
-  (mentor-only, requires an accepted mentor link); separate `Feedback`
-  model
-- **Analytics (FR-7)**: `GET /api/analytics` — stage counts + funnel
-  conversion rates
-- **Admin (FR-13, FR-14)**: list/disable/enable users, usage metrics,
-  restricted to `role: "admin"`
-- **Observer pattern** (`src/lib/applicationEvents.js`): stage changes
-  emit `STAGE_CHANGED`; analytics and reminders subscribe independently
-  (per the Design Patterns UML doc)
-- **Email (FR-6)**: `src/lib/emailService.js` (SendGrid REST API) +
-  `src/lib/reminderJob.js`, runs hourly, only emails users who are
-  opted in
-- `server/API_CONTRACT.md` — full endpoint reference for the frontend
+- **Auth (FR-1, FR-2)**: register, login, logout, `/me`. bcrypt hashing,
+  server-side validation with user-facing messages, JWT sessions.
+  Sessions end after 30 min inactivity, on logout (`tokenVersion`), or
+  when an admin disables the account (NFR 5.2).
+- **Factory Method** (`src/lib/userFactory.js`): role-specific user
+  creation, used by register and `scripts/createAdmin.js`.
+- **Role-based access (FR-11)**: applicant-only application routes,
+  mentor read-only, admin can't read application data.
+- **Applications (FR-3, FR-4)**: company, position, link, dateApplied,
+  deadline; timestamped stage history.
+- **Notes (FR-5)**: add/edit/delete.
+- **Reminders (FR-6)**: SendGrid, hourly job, one email per deadline,
+  both opt-ins honored, closed applications skipped.
+- **Analytics (FR-7)**: funnel based on stage *reached* (from
+  stageHistory), conversion rates, date-range filter.
+- **Mentors (FR-8, FR-9)**: invite by email (with or without an account),
+  invite email, accept/decline, revoke, re-invite, read-only pipeline
+  with summary.
+- **Feedback (FR-10)**: mentor-only post, visible to applicant and
+  linked mentor.
+- **Admin (FR-13, FR-14)**: list/disable/enable, metrics.
+- **Observer pattern** (`src/lib/applicationEvents.js`).
+- **Stability**: Express 5, so a bad id returns 400 instead of crashing
+  the server.
 
 ### Still open
 
-1. **MongoDB integration test** — everything above is validated with
-   `node --check` and unit-style checks (validators, bcrypt, JWT, role
-   middleware, Observer), but not against a real database yet. Run it
-   against a real `MONGODB_URI` (Atlas or local) before merging PR #1.
-2. **Real email send untested** — needs a live `EMAIL_SERVICE_API_KEY`.
-3. **`/api/mentors/invite` limitation** — currently requires the
-   mentor to already have an account. If a mentor hasn't signed up
-   yet, that needs a different flow (store a pending email-only
-   invite + send a signup link).
+1. **Run `npm run smoke` against Atlas** — the sandbox test used
+   FerretDB (MongoDB-compatible). Run once against the real cluster.
+2. **Real email send** — needs a live `EMAIL_SERVICE_API_KEY` and a
+   verified sender address in SendGrid.
+3. **Deployment** (for the final presentation) — backend on
+   Render/Railway, HTTPS (NFR 5.2), `CLIENT_URL` set to the frontend URL.
+4. **Test Plan document (Week 10)** — originally Michael's; confirm who
+   owns it.
+
+## Running it
+
+```
+cd server
+npm install
+cp .env.example .env      # fill in MONGODB_URI and JWT_SECRET
+npm run smoke             # end-to-end test, uses a throwaway database
+npm run dev               # API on http://localhost:5000
+npm run create-admin -- "Name" admin@example.com Password1
+```
 
 ## Conventions
 
@@ -53,13 +66,10 @@ re-explaining the whole project.
 - No direct push to `main` — branch ruleset requires a PR with 1
   approval.
 - Server code lives under `server/src/` (`models/`, `routes/`, `lib/`,
-  `middleware/`, `config/`). `server/index.js` only wires things
-  together.
-- Run `node --check` on every changed `.js` file before opening a PR;
-  prefer a full MongoDB integration test when a `MONGODB_URI` is
-  reachable.
-- Use `bcryptjs` (pure JS), not `bcrypt` (native build) — avoids
-  native-module build issues in sandboxed environments.
+  `middleware/`, `config/`). `src/app.js` builds the Express app;
+  `index.js` only connects the DB, starts it, and schedules reminders.
+- Run `npm run smoke` before opening a PR.
+- Use `bcryptjs` (pure JS), not `bcrypt` (native build).
 
 ## Reference docs
 

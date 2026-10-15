@@ -1,12 +1,11 @@
 import { EventEmitter } from "node:events";
 
 /**
- * Observer pattern (per Design Patterns UML doc): a single event bus that
- * application-stage changes publish to. Analytics recompute and deadline
- * reminders subscribe as independent observers, so neither has to be
- * called directly from the stage-change route — new observers (e.g. a
- * notification-center widget) can subscribe later without touching
- * routes/applications.js.
+ * Observer pattern (per the Design Patterns UML doc): a single event bus
+ * that application-stage changes publish to. Observers subscribe
+ * independently, so routes/applications.js never calls them directly and
+ * new observers (e.g. a notification center) can be added without
+ * touching the route.
  */
 export const applicationEvents = new EventEmitter();
 
@@ -14,19 +13,18 @@ export const STAGE_CHANGED = "application:stageChanged";
 
 // --- Observers ---
 
-// FR-7: Analytics dashboard. Stub for now — Sprint Two will replace this
-// with a real aggregation (e.g. recompute a cached funnel count per user).
+// FR-7 analytics: the dashboard recomputes from stageHistory on request
+// (routes/analytics.js), so this observer only records the transition.
 applicationEvents.on(STAGE_CHANGED, ({ application, previousStage, newStage }) => {
-  console.log(
-    `[analytics] ${application.owner}: "${application.company}" ${previousStage} -> ${newStage}`
-  );
+  console.log(`[analytics] ${application.owner}: "${application.company}" ${previousStage} -> ${newStage}`);
 });
 
-// FR-6: Deadline reminders. Stub for now — Sprint Two will wire this to
-// the transactional email service (EMAIL_SERVICE_API_KEY) and only act
-// when the application still has reminderEnabled=true and an open deadline.
+// FR-6 reminders / UC-2 alternate flow: once a pipeline closes (Offer or
+// Rejected) the application stops getting deadline reminders. The hourly
+// job (lib/reminderJob.js) already skips closed stages; this observer
+// makes the change visible in the logs at the moment it happens.
 applicationEvents.on(STAGE_CHANGED, ({ application, newStage }) => {
   if (newStage === "Offer" || newStage === "Rejected") {
-    console.log(`[reminders] clearing deadline reminder for "${application.company}" (pipeline closed)`);
+    console.log(`[reminders] "${application.company}" closed (${newStage}); no further reminders.`);
   }
 });

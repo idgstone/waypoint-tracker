@@ -1,20 +1,26 @@
 /**
- * FR-6: transactional email for deadline reminders, via SendGrid's REST
- * API (no SDK dependency needed — a single fetch call). Swap the fetch
- * target for AWS SES if the team picks that instead; the sendEmail()
- * call site elsewhere in the app doesn't need to change.
+ * Transactional email via SendGrid's REST API (no SDK, one fetch call).
+ * Used for FR-6 deadline reminders and FR-8 mentor invitations. Swap the
+ * fetch target for AWS SES if the team picks that instead; callers don't
+ * change.
  *
- * Per NFR 5.2 / the Production Plan's FR-6 Security row: only call this
- * for a user who has opted in, and never log/store more of the address
- * than needed to send the message.
+ * NFR 5.2: only the email address the user gave us is used; we never
+ * request access to anyone's inbox. Reminders go only to opted-in users.
  */
 const SENDGRID_URL = "https://api.sendgrid.com/v3/mail/send";
-const FROM_ADDRESS = process.env.EMAIL_FROM_ADDRESS || "no-reply@waypoint.app";
+
+function fromAddress() {
+  return process.env.EMAIL_FROM_ADDRESS || "no-reply@waypoint.app";
+}
+
+function clientUrl() {
+  return (process.env.CLIENT_URL || "http://localhost:5173").replace(/\/$/, "");
+}
 
 export async function sendEmail({ to, subject, text }) {
   const apiKey = process.env.EMAIL_SERVICE_API_KEY;
-  if (!apiKey) {
-    console.warn(`[emailService] EMAIL_SERVICE_API_KEY not set — skipping email to ${to}: "${subject}"`);
+  if (!apiKey || apiKey.startsWith("replace-with")) {
+    console.warn(`[emailService] EMAIL_SERVICE_API_KEY not set — skipping email: "${subject}"`);
     return { sent: false, reason: "no-api-key" };
   }
 
@@ -26,7 +32,7 @@ export async function sendEmail({ to, subject, text }) {
     },
     body: JSON.stringify({
       personalizations: [{ to: [{ email: to }] }],
-      from: { email: FROM_ADDRESS },
+      from: { email: fromAddress() },
       subject,
       content: [{ type: "text/plain", value: text }],
     }),
@@ -40,7 +46,7 @@ export async function sendEmail({ to, subject, text }) {
   return { sent: true };
 }
 
-/** FR-6: builds and sends a single application's deadline reminder, respecting opt-in. */
+/** FR-6: one application's deadline reminder, respecting both opt-ins. */
 export async function sendDeadlineReminder(user, application) {
   const optedIn = user.notificationPreferences?.deadlineReminders && application.reminderEnabled;
   if (!optedIn) {
@@ -50,6 +56,27 @@ export async function sendDeadlineReminder(user, application) {
   return sendEmail({
     to: user.email,
     subject: `Reminder: ${application.company} deadline coming up`,
-    text: `Your application for ${application.position} at ${application.company} has a deadline on ${application.deadline?.toDateString()}.`,
+    text:
+      `Hi ${user.name},\n\n` +
+      `Your application for ${application.position} at ${application.company} ` +
+      `has a deadline on ${application.deadline?.toUTCString()}.\n\n` +
+      `Open Waypoint: ${clientUrl()}\n\n` +
+      `You can turn these reminders off in Settings or on the application itself.`,
+  });
+}
+
+/** FR-8: invitation to view an applicant's pipeline. */
+export async function sendMentorInvite({ applicantName, mentorEmail, hasAccount }) {
+  const next = hasAccount
+    ? `Log in to Waypoint to accept: ${clientUrl()}/login`
+    : `Create a Mentor account with this email to accept: ${clientUrl()}/signup`;
+
+  return sendEmail({
+    to: mentorEmail,
+    subject: `${applicantName} invited you to mentor them on Waypoint`,
+    text:
+      `${applicantName} invited you to view their job-application pipeline on Waypoint ` +
+      `and leave feedback. Your access is read-only and they can revoke it at any time.\n\n` +
+      `${next}`,
   });
 }

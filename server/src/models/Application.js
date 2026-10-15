@@ -23,12 +23,17 @@ const noteSchema = new Schema(
 const applicationSchema = new Schema(
   {
     owner: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
-    company: { type: String, required: true, trim: true },
-    position: { type: String, required: true, trim: true },
+    company: { type: String, required: [true, "Company name is required."], trim: true },
+    position: { type: String, required: [true, "Role title is required."], trim: true },
+    link: { type: String, trim: true, default: "" }, // UC-1: optional application link
+    dateApplied: { type: Date, default: Date.now }, // FR-3
     stage: { type: String, enum: STAGES, default: "Applied", required: true },
-    deadline: { type: Date, default: null },
+    deadline: { type: Date, default: null }, // FR-6
+    reminderEnabled: { type: Boolean, default: true }, // FR-6 per-application opt-in
+    // FR-6: the deadline a reminder was already sent for, so the hourly job
+    // sends once per deadline (and again only if the deadline changes).
+    reminderSentFor: { type: Date, default: null },
     notes: { type: [noteSchema], default: [] },
-    reminderEnabled: { type: Boolean, default: true }, // FR-6 deadline reminder toggle
     stageHistory: {
       type: [stageHistoryEntrySchema],
       default: () => [{ stage: "Applied", changedAt: new Date() }],

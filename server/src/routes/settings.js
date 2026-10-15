@@ -5,37 +5,40 @@ import { requireAuth } from "../middleware/requireAuth.js";
 const router = Router();
 router.use(requireAuth);
 
-// GET /api/settings — FR-11: current profile + notification preferences
+const SAFE_FIELDS = "-passwordHash -tokenVersion";
+
+// GET /api/settings — profile + notification preferences (Settings screen, FR-6/FR-11)
 router.get("/", async (req, res) => {
-  const user = await User.findById(req.userId).select("-passwordHash");
-  if (!user) {
-    return res.status(404).json({ error: "User not found." });
-  }
+  const user = await User.findById(req.userId).select(SAFE_FIELDS);
+  if (!user) return res.status(404).json({ error: "User not found." });
   res.json(user);
 });
 
-// PATCH /api/settings — FR-11: update profile / notification preferences
+// PATCH /api/settings — update name and/or notification preferences
 router.patch("/", async (req, res) => {
   const { name, notificationPreferences } = req.body;
 
   const update = {};
-  if (name !== undefined) update.name = name;
+  if (name !== undefined) {
+    if (typeof name !== "string" || !name.trim()) {
+      return res.status(400).json({ error: "Name cannot be empty." });
+    }
+    update.name = name.trim();
+  }
   if (notificationPreferences !== undefined) {
-    if (notificationPreferences.deadlineReminders !== undefined) {
-      update["notificationPreferences.deadlineReminders"] = notificationPreferences.deadlineReminders;
-    }
-    if (notificationPreferences.mentorFeedback !== undefined) {
-      update["notificationPreferences.mentorFeedback"] = notificationPreferences.mentorFeedback;
+    for (const key of ["deadlineReminders", "mentorFeedback"]) {
+      const value = notificationPreferences?.[key];
+      if (value === undefined) continue;
+      if (typeof value !== "boolean") {
+        return res.status(400).json({ error: `${key} must be true or false.` });
+      }
+      update[`notificationPreferences.${key}`] = value;
     }
   }
 
-  const user = await User.findByIdAndUpdate(req.userId, update, {
-    new: true,
-  }).select("-passwordHash");
-
-  if (!user) {
-    return res.status(404).json({ error: "User not found." });
-  }
+  const result = await User.updateOne({ _id: req.userId }, update);
+  if (result.matchedCount === 0) return res.status(404).json({ error: "User not found." });
+  const user = await User.findById(req.userId).select(SAFE_FIELDS);
   res.json(user);
 });
 
