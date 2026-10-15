@@ -1,63 +1,76 @@
-# Waypoint API Contract — Sprint One
+# Waypoint API Contract
 
 Base URL (dev): `http://localhost:5000`
 
-**Auth (temporary):** until Michael's JWT auth lands, every protected route
-reads the caller's user id from an `x-user-id` header. Send it on every
-request below. This header requirement disappears once real auth is merged
-(it'll become `Authorization: Bearer <token>` instead) — Frontend will only
-need to swap how the id/token is attached, not how routes are called.
+**Auth:** `POST /api/auth/register` or `/login` return `{ token, user }`.
+Send `Authorization: Bearer <token>` on every other request below.
+The token carries the user's role, which gates mentor/admin-only routes.
+
+## Auth (FR-1, FR-2)
+
+| Method | Path | Body | Notes |
+|---|---|---|---|
+| POST | `/api/auth/register` | `{ name, email, password, role? }` | `role` ∈ `applicant` \| `mentor` (default `applicant`); admin accounts aren't self-registered. Password: 8+ chars, 1 letter, 1 number. |
+| POST | `/api/auth/login` | `{ email, password }` | Returns a 7-day JWT |
 
 ## Applications (FR-3, FR-4)
 
 | Method | Path | Body | Notes |
 |---|---|---|---|
 | GET | `/api/applications` | — | List the caller's board, newest first |
-| POST | `/api/applications` | `{ company, position, deadline?, notes? }` | Creates with `stage: "Applied"` |
-| PATCH | `/api/applications/:id` | `{ company?, position?, deadline?, notes?, reminderEnabled? }` | Partial edit |
+| POST | `/api/applications` | `{ company, position, deadline?, reminderEnabled? }` | Creates with `stage: "Applied"` |
+| PATCH | `/api/applications/:id` | `{ company?, position?, deadline?, reminderEnabled? }` | Partial edit |
 | PATCH | `/api/applications/:id/stage` | `{ stage }` | `stage` ∈ `Applied`, `Online Assessment`, `Interview`, `Offer`, `Rejected` |
 | DELETE | `/api/applications/:id` | — | 204 on success |
 
-Application shape:
-```json
-{
-  "_id": "...",
-  "owner": "...",
-  "company": "Acme Corp",
-  "position": "SWE Intern",
-  "stage": "Applied",
-  "deadline": "2026-11-01T00:00:00.000Z",
-  "notes": "",
-  "reminderEnabled": true,
-  "stageHistory": [{ "stage": "Applied", "changedAt": "..." }],
-  "createdAt": "...",
-  "updatedAt": "..."
-}
-```
-
-## Mentors (FR-5, and FR-9/FR-10 stubs for Sprint Two)
+## Notes (FR-5)
 
 | Method | Path | Body | Notes |
 |---|---|---|---|
-| POST | `/api/mentors/share` | `{ mentorId }` | Creates a pending mentor link |
-| DELETE | `/api/mentors/share/:mentorId` | — | Revokes access |
-| GET | `/api/mentors/roster` | — | Mentor-only: accepted applicants |
-| GET | `/api/mentors/applicants/:applicantId/pipeline` | — | Mentor-only, read-only board |
-| POST | `/api/mentors/applicants/:applicantId/feedback` | `{ message }` | Mentor-only |
+| POST | `/api/applications/:id/notes` | `{ text }` | Adds a note |
+| PATCH | `/api/applications/:id/notes/:noteId` | `{ text }` | Edits a note |
+| DELETE | `/api/applications/:id/notes/:noteId` | — | Deletes a note |
 
-## Settings (FR-11)
+## Mentors (FR-8, FR-9)
+
+| Method | Path | Body | Role | Notes |
+|---|---|---|---|---|
+| POST | `/api/mentors/invite` | `{ mentorEmail }` | applicant | Creates a pending link to an existing mentor account |
+| POST | `/api/mentors/invitations/:linkId/accept` | — | mentor | Accepts a pending invitation |
+| GET | `/api/mentors/invitations` | — | mentor | List pending invitations |
+| DELETE | `/api/mentors/share/:mentorId` | — | applicant | Revokes an accepted/pending link |
+| GET | `/api/mentors/roster` | — | mentor | Accepted applicants |
+| GET | `/api/mentors/applicants/:applicantId/pipeline` | — | mentor | Read-only board for one accepted applicant |
+
+## Feedback (FR-10)
+
+| Method | Path | Body | Role | Notes |
+|---|---|---|---|---|
+| GET | `/api/applications/:id/feedback` | — | applicant (owner) | Feedback left on that application |
+| POST | `/api/applications/:id/feedback` | `{ comment }` | mentor | Requires an accepted mentor link to that applicant |
+
+## Analytics (FR-7)
+
+| Method | Path | Notes |
+|---|---|---|
+| GET | `/api/analytics` | `{ stageCounts, funnel, conversions }` for the caller's own pipeline |
+
+## Admin (FR-13, FR-14) — role: admin only
 
 | Method | Path | Body | Notes |
 |---|---|---|---|
-| GET | `/api/settings` | — | Current user profile + notification prefs |
+| GET | `/api/admin/users` | — | List all accounts |
+| PATCH | `/api/admin/users/:id/disable` | — | |
+| PATCH | `/api/admin/users/:id/enable` | — | |
+| GET | `/api/admin/metrics` | — | `{ activeUsers, totalUsers, totalApplications, invitationsSent }` |
+
+## Settings (FR-6, FR-11 — profile/notification UI)
+
+| Method | Path | Body | Notes |
+|---|---|---|---|
+| GET | `/api/settings` | — | Current profile + notification prefs |
 | PATCH | `/api/settings` | `{ name?, notificationPreferences?: { deadlineReminders?, mentorFeedback? } }` | Partial update |
 
 ## Errors
 
 All error responses: `{ "error": "message" }` with a 4xx/5xx status.
-
-## Not yet built (Sprint Two)
-
-- `/api/auth/*` — signup/login (Michael)
-- `/api/admin/*` — FR-13 (Michael)
-- `/api/analytics` — FR-7 funnel stats

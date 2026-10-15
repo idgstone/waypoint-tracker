@@ -2,29 +2,21 @@ import mongoose from "mongoose";
 
 const { Schema } = mongoose;
 
-const feedbackEntrySchema = new Schema(
-  {
-    author: { type: Schema.Types.ObjectId, ref: "User", required: true },
-    message: { type: String, required: true, trim: true },
-    createdAt: { type: Date, default: Date.now },
-  },
-  { _id: false }
-);
-
 /**
- * Links an applicant to a mentor who can view their pipeline (FR-5)
- * and leave feedback (FR-9, FR-10).
+ * Links an applicant to a mentor (FR-8 invite, FR-9 accept + read-only
+ * pipeline view). Per-application feedback is its own Feedback model
+ * (FR-10), not stored here.
  */
 const mentorLinkSchema = new Schema(
   {
     applicant: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
     mentor: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
+    mentorEmail: { type: String, required: true, trim: true, lowercase: true }, // email the invite was sent to
     status: {
       type: String,
       enum: ["pending", "accepted", "revoked"],
       default: "pending",
     },
-    feedback: { type: [feedbackEntrySchema], default: [] },
   },
   { timestamps: true }
 );
