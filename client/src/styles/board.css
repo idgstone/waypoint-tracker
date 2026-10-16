@@ -1,0 +1,85 @@
+.board-toolbar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
+.board-toolbar h1 { margin: 0; }
+.board-sample-note { font-size: 0.8rem; color: var(--color-muted); margin-block: 0.75rem; }
+.board-notice { color: var(--color-navy); margin: 0; min-height: 1.5rem; }
+.board-scroll { overflow-x: auto; padding: 0.5rem 0.25rem 1rem; }
+.board-grid { display: grid; grid-template-columns: repeat(4, minmax(15rem, 1fr)); gap: 1.5rem; }
+.board-column h2 { font-size: 0.875rem; margin-bottom: 1rem; }
+.board-column__count { color: var(--color-muted); font-weight: 400; }
+.board-column__cards { list-style: none; padding: 0; margin: 0; display: grid; gap: 1rem; }
+.application-card { padding: 1rem; background: var(--color-surface); border: 1px solid var(--color-border); border-left: 3px solid var(--stage-accent); border-radius: 0.6rem; overflow-wrap: anywhere; }
+.application-card--applied { --stage-accent: #4338ca; }
+.application-card--onlineAssessment, .application-card--offer { --stage-accent: #047857; }
+.application-card--interview { --stage-accent: #b45309; }
+.application-card--rejected { --stage-accent: #b91c1c; }
+.application-card h3 { font-size: 0.875rem; margin: 0; }
+.application-card__role { font-size: 0.8rem; color: var(--color-muted); margin: 0 0 0.75rem; }
+.application-card__deadline { color: #b91c1c; font-size: 0.75rem; margin: 0 0 0.5rem; }
+.application-card__feedback { color: var(--color-muted); font-size: 0.75rem; margin: 0.5rem 0 0; }
+.stage-tag { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.1rem 0.5rem; border-radius: var(--radius-pill); font-size: 0.7rem; font-weight: 600; }
+.stage-tag--applied { background: #e0e7ff; color: #3730a3; }
+.stage-tag--onlineAssessment, .stage-tag--offer { background: #d1fae5; color: #065f46; }
+.stage-tag--interview { background: #fef3c7; color: #92400e; }
+.stage-tag--rejected { background: #fee2e2; color: #991b1b; }
+.board-column__new { width: 100%; min-height: 48px; margin-top: 1rem; border: 1px dashed var(--color-border); border-radius: 0.6rem; background: transparent; color: var(--color-muted); }
+.board-column__new:hover { background: var(--color-primary-soft); color: var(--color-primary); }
+.application-card { position: relative; }
+.application-card h3 { padding-right: 2.5rem; }
+.application-actions-menu { position: absolute; top: 0.5rem; right: 0.5rem; z-index: 2; }
+.application-actions-trigger { width: 44px; height: 44px; border: 0; border-radius: 0.5rem; background: transparent; color: var(--color-muted); font-size: 1.5rem; }
+.application-actions-trigger:hover { background: var(--color-primary-soft); }
+.application-menu { position: absolute; top: 100%; right: 0; width: 11rem; padding: 0.25rem; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 0.5rem; box-shadow: 0 4px 12px #11182722; }
+.application-menu button { display: block; width: 100%; min-height: 44px; padding: 0.5rem; text-align: left; border: 0; background: transparent; color: var(--color-text); }
+.application-menu button:hover, .application-menu button:focus-visible { background: var(--color-primary-soft); }
+.detail-delete { margin-top: 1.5rem; }
+.preview-reset { margin-inline: 1rem; }
+.application-card__open { padding: 0; border: 0; background: transparent; color: inherit; text-align: left; font-weight: inherit; }
+.application-card__open::after { content: ""; position: absolute; inset: 0; border-radius: 0.6rem; }
+.application-card:focus-within { outline: 3px solid var(--color-primary); outline-offset: 2px; }
+.application-modal { width: min(30rem, calc(100% - 2rem)); max-height: calc(100svh - 2rem); overflow-y: auto; padding: 1.5rem; border: 1px solid var(--color-border); border-radius: var(--radius); background: var(--color-surface); color: var(--color-text); }
+.application-modal::backdrop { background: rgb(17 24 39 / 55%); }
+.application-modal h2 { padding-bottom: 1rem; border-bottom: 1px solid var(--color-border); }
+.application-field { margin-block: 1rem; }
+.application-field > label { display: block; color: var(--color-primary); font-size: 0.8rem; margin-bottom: 0.35rem; }
+.application-field input, .application-field select, .application-field textarea { width: 100%; min-height: 44px; padding: 0.6rem; border: 1px solid var(--color-border); border-radius: 0.5rem; background: var(--color-surface); color: var(--color-text); }
+.application-field textarea { resize: vertical; }
+.application-field [aria-invalid="true"] { border-color: #b91c1c; }
+.application-error { color: #b91c1c; font-size: 0.8rem; margin: 0.25rem 0; }
+.application-date-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; }
+.application-reminder { display: flex; align-items: center; gap: 0.5rem; }
+.application-reminder input { width: 1.25rem; height: 1.25rem; accent-color: var(--color-primary); }
+.application-modal--add { width: min(23.5rem, calc(100% - 2rem)); padding: 0; border-radius: 0.65rem; font-size: 0.8125rem; }
+.application-modal--add h2 { margin: 0; padding: 1.2rem 1.5rem; font-size: 0.9375rem; }
+.application-modal--add form { padding: 0 1.5rem; }
+.application-modal--add .application-field { margin-block: 0.65rem; }
+.application-modal--add form > .application-field:first-child { margin-top: 1rem; }
+.application-modal--add .application-field > label { font-size: 0.6875rem; font-weight: 600; text-transform: uppercase; margin-bottom: 0.2rem; }
+.application-required { color: #b91c1c; }
+.application-modal--add .application-field input,
+.application-modal--add .application-field select,
+.application-modal--add .application-field textarea { min-height: 36px; padding: 0.45rem 0.7rem; font-size: 0.8125rem; }
+.application-modal--add .application-field textarea { height: 48px; min-height: 48px; }
+.application-modal--add .application-date-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.application-modal--add .application-reminder { gap: 1rem; font-size: 0.75rem; line-height: 1.4; margin-block: 0.2rem 0.65rem; }
+.application-modal--add .application-reminder input { appearance: none; flex: 0 0 30px; width: 30px; height: 18px; margin: 0; border: 1px solid #6b7280; border-radius: 999px; background: #6b7280; position: relative; cursor: pointer; }
+.application-modal--add .application-reminder input::before { content: ""; position: absolute; width: 12px; height: 12px; top: 2px; left: 2px; border-radius: 50%; background: white; }
+.application-modal--add .application-reminder input:checked { background: var(--color-primary); border-color: var(--color-primary); }
+.application-modal--add .application-reminder input:checked::before { transform: translateX(12px); }
+.application-modal--add .application-reminder input:focus-visible { outline: 3px solid var(--color-primary); outline-offset: 3px; }
+.application-modal--add .application-actions { margin: 1.5rem -1.5rem 0; padding: 1rem; gap: 0.6rem; }
+.application-modal--add .application-actions .button { min-height: 36px; padding: 0.45rem 1.25rem; font-size: 0.8125rem; }
+.application-modal--add .button--secondary { color: var(--color-text); border-color: var(--color-border); }
+@media (max-width: 350px) {
+  .application-modal--add .application-date-fields { grid-template-columns: 1fr; }
+}
+.application-help { color: var(--color-muted); font-size: 0.8rem; margin-top: 0.5rem; }
+.application-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.75rem; padding-top: 1rem; border-top: 1px solid var(--color-border); }
+.application-detail { display: grid; grid-template-columns: 1.2fr 1fr; gap: 1.25rem; }
+.application-detail h2 { margin-top: 1.5rem; }
+.application-detail aside h2 { margin-top: 0; }
+.application-detail .card p { margin-bottom: 0.75rem; }
+.application-detail blockquote { margin: 1rem 0; padding: 1rem; border: 1px solid var(--color-border); border-radius: 0.5rem; }
+.application-detail blockquote footer { color: var(--color-muted); font-size: 0.8rem; }
+@media (max-width: 650px) {
+  .application-detail, .application-date-fields { grid-template-columns: 1fr; }
+}

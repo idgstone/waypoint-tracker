@@ -1,0 +1,31 @@
+.analytics-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
+.analytics-toolbar h1 { margin: 0; }
+.analytics-period { display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; }
+.analytics-period select { padding: 0.45rem 0.6rem; border: 1px solid var(--color-border); border-radius: 0.5rem; background: white; color: var(--color-navy); font: inherit; }
+.analytics-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; margin-bottom: 1.25rem; }
+.analytics-stage--applied { --funnel-color: #3c2fa0; }
+.analytics-stage--onlineAssessment { --funnel-color: #065f46; }
+.analytics-stage--interview { --funnel-color: #b45309; }
+.analytics-stage--offer { --funnel-color: #047857; }
+.analytics-stat { display: flex; flex-direction: column; padding: 1rem; background: white; border: 1px solid var(--color-border); border-radius: var(--radius); }
+.analytics-stat strong { color: var(--funnel-color); font-size: 1.75rem; line-height: 1.2; }
+.analytics-stat span { color: var(--color-muted); font-size: 0.875rem; margin-top: 0.25rem; }
+.analytics-funnel { padding: 1.25rem; border: 1px solid var(--color-border); border-radius: var(--radius); background: white; min-height: 32rem; }
+.analytics-funnel h2 { color: var(--color-navy); margin-bottom: 1.25rem; }
+.analytics-chart { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+.analytics-chart-column { text-align: center; }
+.analytics-bar-space { height: 14rem; display: flex; justify-content: center; align-items: flex-end; }
+.analytics-bar { width: min(4.5rem, 70%); background: var(--funnel-color); border-radius: 0.35rem 0.35rem 0 0; }
+.analytics-chart-column p { font-size: 0.875rem; color: var(--color-navy); margin: 0.5rem 0 0; }
+.analytics-summary { width: 100%; border-collapse: collapse; font-size: 0.875rem; text-align: left; }
+.analytics-summary caption { text-align: left; font-weight: 600; margin-bottom: 0.5rem; }
+.analytics-summary th, .analytics-summary td { padding: 0.5rem; border-bottom: 1px solid var(--color-border); }
+.analytics-explanation, .analytics-empty { color: var(--color-muted); font-size: 0.875rem; margin: 1rem 0 0; }
+@media (max-width: 600px) {
+  .analytics-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .analytics-chart { gap: 0.5rem; }
+  .analytics-bar-space { height: 10rem; }
+  .analytics-funnel { padding: 1rem; }
+  .analytics-toolbar { flex-wrap: wrap; }
+  .analytics-summary th, .analytics-summary td { padding: 0.5rem 0.25rem; overflow-wrap: anywhere; }
+}
