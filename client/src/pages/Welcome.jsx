@@ -21,6 +21,8 @@ function Welcome({ onNavigate }) {
             <button type="button" className="button button--secondary" onClick={() => onNavigate("preview")}>
               Preview Board
             </button>
+            <button type="button" className="button button--secondary" onClick={() => onNavigate("mentorPreview")}>Mentor Preview (development only)</button>
+            <button type="button" className="button button--secondary" onClick={() => onNavigate("adminPreview")}>Admin Preview (development only)</button>
           </p>
         )}
       </section>

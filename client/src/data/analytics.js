@@ -20,13 +20,28 @@ export function filterApplications(applications, period, today = localDate()) {
 export function calculateFunnel(applications) {
   const counts = { applied: applications.length, onlineAssessment: 0, interview: 0, offer: 0 };
   for (const application of applications) {
-    const reached = new Set([application.stage, ...(application.history ?? []).map((entry) => entry.stage)]);
-    for (const { id } of funnelStages.slice(1)) if (reached.has(id)) counts[id] += 1;
+    // Match computeFunnel: use history when present, otherwise current stage.
+    const history = application.history?.length ? application.history : [{ stage: application.stage }];
+    let furthest = 0;
+    for (const entry of history) furthest = Math.max(furthest, funnelStages.findIndex(({ id }) => id === entry.stage));
+    for (let index = 1; index <= furthest; index++) counts[funnelStages[index].id]++;
   }
   const maximum = Math.max(...Object.values(counts), 1);
   return funnelStages.map((stage, index) => {
     const denominator = index === 0 ? null : counts[funnelStages[index - 1].id];
     return { ...stage, count: counts[stage.id], height: counts[stage.id] / maximum * 100,
-      percentage: denominator ? `${Math.round(counts[stage.id] / denominator * 100)}%` : "—" };
+      percentage: denominator ? `${Math.round(Number((counts[stage.id] / denominator).toFixed(4)) * 100)}%` : "—" };
   });
+}
+
+export function previewAnalytics(applications) {
+  return { total: applications.length, rejected: applications.filter(({ stage }) => stage === "rejected").length,
+    stages: calculateFunnel(applications).map((stage) => ({ ...stage, currentCount: applications.filter((application) => application.stage === stage.id).length })) };
+}
+
+export function periodDates(period, today = localDate()) {
+  if (period === "all") return { from: "", to: "" };
+  const start = new Date(`${today}T00:00:00Z`);
+  start.setUTCDate(start.getUTCDate() - Number(period) + 1);
+  return { from: start.toISOString().slice(0, 10), to: today };
 }

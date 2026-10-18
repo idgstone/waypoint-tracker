@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import StageTag from "../components/StageTag.jsx";
 import { applicationStages } from "../data/applicationStages.js";
 
-function ApplicationDetail({ application, onBack, onUpdate, onDelete }) {
+function ApplicationDetail({ application, onBack, onUpdate, onDelete, onMentors }) {
   const [stage, setStage] = useState(application.stage);
   const [notes, setNotes] = useState(application.notes);
   const [notice, setNotice] = useState("");
@@ -38,6 +38,8 @@ function ApplicationDetail({ application, onBack, onUpdate, onDelete }) {
         <button type="button" className="button button--secondary detail-delete" onClick={() => onDelete(application)}>Delete application</button>
       </section>
       <aside className="card" aria-labelledby="feedback-title"><h2 id="feedback-title">Mentor Feedback</h2>
+        <button type="button" className="button button--secondary" onClick={onMentors}>Share with Mentor</button>
+        <p>Manage mentor invitations on the Mentors page. This preview does not share an application.</p>
         {application.feedback.length ? application.feedback.map((feedback) => <blockquote key={feedback.id}><p>{feedback.text}</p><footer>{feedback.author} · Sample feedback</footer></blockquote>) : <p>No mentor feedback yet.</p>}
       </aside>
     </div>

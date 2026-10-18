@@ -1,7 +1,7 @@
 import AuthForm from "../components/AuthForm.jsx";
 
-function Login({ onNavigate }) {
-  return <AuthForm mode="login" onNavigate={onNavigate} />;
+function Login(props) {
+  return <AuthForm mode="login" {...props} />;
 }
 
 export default Login;

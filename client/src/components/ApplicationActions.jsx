@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-function ApplicationActions({ application, onOpen, onDelete }) {
+function ApplicationActions({ application, onOpen, onDelete, disabled = false }) {
   const [open, setOpen] = useState(false);
   const root = useRef(null);
   const trigger = useRef(null);
@@ -25,7 +25,7 @@ function ApplicationActions({ application, onOpen, onDelete }) {
     }
   }
   return <div className="application-actions-menu" ref={root} onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false); }}>
-    <button ref={trigger} type="button" className="application-actions-trigger" aria-label={`Actions for ${application.role} at ${application.company}`}
+    <button ref={trigger} type="button" disabled={disabled} className="application-actions-trigger" aria-label={`Actions for ${application.role} at ${application.company}`}
       aria-haspopup="menu" aria-expanded={open} aria-controls={open ? menuId : undefined}
       onClick={() => setOpen((previous) => !previous)} onKeyDown={(event) => { if (event.key === "ArrowDown" || event.key === "ArrowUp") { event.preventDefault(); setOpen(true); } }}>⋯</button>
     {open && <div ref={menu} id={menuId} role="menu" aria-label={`Application actions for ${application.company}`} className="application-menu" onKeyDown={keyDown}>

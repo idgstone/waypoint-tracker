@@ -63,3 +63,11 @@ main.content-container { padding-block: 2rem; }
   outline: 3px solid var(--color-primary);
   outline-offset: 3px;
 }
+
+.action-notice { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.action-notice:has(span) { margin-block: 1rem; padding: .75rem 1rem; border: 1px solid var(--color-primary); border-radius: .5rem; background: white; }
+.board-move-help { margin-block: 1rem; }
+.board-move-help summary { cursor: pointer; color: var(--color-primary); width: fit-content; }
+.board-move-help p { max-width: 65ch; }
+.settings-account { padding-bottom: 2rem; }
+.settings-account .card { padding: 1.5rem; }

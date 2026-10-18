@@ -1,0 +1,27 @@
+.admin-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+.admin-toolbar h1 { margin: 0; }
+.admin-search { display: grid; gap: 0.25rem; color: var(--color-muted); font-size: 0.8125rem; }
+.admin-search input { min-height: 44px; width: min(100%, 20rem); padding: 0.5rem 0.75rem; border: 1px solid var(--color-border); border-radius: 0.5rem; }
+.admin-notice { min-height: 1.5rem; margin-block: 0.5rem; }
+.admin-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+.admin-stat { display: flex; flex-direction: column; padding: 1rem; }
+.admin-stat strong { font-size: 1.75rem; line-height: 1.2; }
+.admin-stat span, .admin-metric-note, .admin-self { font-size: 0.8125rem; color: var(--color-muted); }
+.admin-stat-1 strong { color: #065f46; }
+.admin-stat-2 strong { color: #b91c1c; }
+.admin-metric-note { margin-block: 0.75rem; }
+.admin-table-scroll { overflow-x: auto; border: 1px solid var(--color-border); border-radius: var(--radius); background: white; }
+.admin-table { width: 100%; min-width: 46rem; border-collapse: collapse; text-align: left; font-size: 0.875rem; }
+.admin-table caption { padding: 0.75rem 1rem; text-align: left; color: var(--color-muted); font-size: 0.8125rem; }
+.admin-table th, .admin-table td { padding: 0.9rem 1rem; border-bottom: 1px solid var(--color-border); }
+.admin-table thead { color: var(--color-muted); font-size: 0.8125rem; }
+.admin-table tbody tr:last-child > * { border-bottom: 0; }
+.admin-table .button { font-size: 0.8125rem; padding: 0.35rem 0.8rem; min-height: 44px; }
+.admin-role { text-transform: capitalize; }
+.admin-status { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.15rem 0.5rem; border-radius: var(--radius-pill); font-size: 0.8125rem; font-weight: 600; white-space: nowrap; }
+.admin-status.is-enabled { background: #d1fae5; color: #065f46; }
+.admin-status.is-disabled { background: #fee2e2; color: #991b1b; }
+.admin-metrics { margin-top: 1rem; }
+.admin-metrics dl > div { display: flex; justify-content: space-between; gap: 1rem; padding-block: 0.5rem; border-bottom: 1px solid var(--color-border); }
+.admin-metrics dd { margin: 0; font-weight: 600; }
+@media (max-width: 600px) { .admin-stats { grid-template-columns: 1fr; } .admin-search { width: 100%; } .admin-search input { width: 100%; } }

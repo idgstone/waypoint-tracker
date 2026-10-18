@@ -1,0 +1,28 @@
+.mentors-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; }
+.mentors-toolbar h1 { margin: 0; }
+.mentors-preview-note { color: var(--color-muted); font-size: 0.875rem; }
+.mentors-sections { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.25rem; margin-top: 1.5rem; }
+.mentor-list { padding: 0; margin: 0; list-style: none; }
+.mentor-list li { display: flex; flex-direction: column; gap: 0.35rem; padding-block: 1rem; border-bottom: 1px solid var(--color-border); overflow-wrap: anywhere; }
+.mentor-list li:last-child { border-bottom: 0; }
+.mentor-list span { font-size: 0.875rem; color: var(--color-muted); }
+.mentor-invite-modal { width: min(27rem, calc(100% - 2rem)); max-height: calc(100svh - 2rem); overflow-y: auto; padding: 0; color: var(--color-text); background: white; border: 1px solid var(--color-border); border-radius: 0.65rem; }
+.mentor-invite-modal::backdrop { background: rgb(17 24 39 / 55%); }
+.mentor-invite-modal h2 { margin: 0; padding: 1.3rem 1.5rem; border-bottom: 1px solid var(--color-border); }
+.mentor-invite-body { padding: 1.25rem 1.5rem; }
+.mentor-invite-body label { display: block; margin-bottom: 0.3rem; text-transform: uppercase; font-size: 0.75rem; font-weight: 600; color: var(--color-primary); }
+.mentor-invite-body input { width: 100%; min-height: 44px; border: 1px solid var(--color-border); border-radius: 0.5rem; padding: 0.6rem; }
+.mentor-invite-body input[aria-invalid="true"] { border-color: #b91c1c; }
+.mentor-invite-body > p:last-child { color: var(--color-muted); font-size: 0.8125rem; margin: 0.75rem 0 0; }
+.mentor-invite-footer { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 0.75rem; padding: 1rem 1.5rem; border-top: 1px solid var(--color-border); }
+.mentor-confirmation-layout { display: grid; place-items: center; min-height: 65vh; }
+.mentor-confirmation { width: min(100%, 26rem); text-align: center; }
+.mentor-confirmation-icon { display: inline-grid; place-items: center; width: 3.5rem; height: 3.5rem; border-radius: 50%; background: #d1fae5; color: #065f46; font-size: 1.75rem; margin-bottom: 1rem; }
+.mentor-confirmation h1 { font-size: 1.125rem; }
+.mentor-confirmation .button { margin: 1.25rem auto 0.75rem; }
+.mentor-confirmation .auth-link { display: block; margin-inline: auto; }
+.mentor-confirmation p { overflow-wrap: anywhere; }
+.mentor-confirmation-preview { padding: 0.75rem; margin-bottom: 1rem; border: 1px solid var(--color-border); border-radius: 0.5rem; background: var(--color-primary-soft); font-size: 0.8125rem; }
+.mentor-confirmation-preview p { margin-top: 0.4rem; }
+.detail-share { margin-top: 1.25rem; }
+@media (max-width: 650px) { .mentors-sections { grid-template-columns: 1fr; } }
