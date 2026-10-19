@@ -1,0 +1,35 @@
+.settings-panels { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.25rem; align-items: stretch; }
+.settings-panels .card { padding: 1.5rem; }
+.settings-preview-note { color: var(--color-muted); font-size: 0.8125rem; }
+.settings-field { margin-bottom: 0.75rem; }
+.settings-field label { display: block; margin-bottom: 0.25rem; color: var(--color-primary); text-transform: uppercase; font-size: 0.75rem; font-weight: 600; }
+.settings-field input { width: 100%; min-height: 44px; padding: 0.6rem 0.75rem; background: white; border: 1px solid var(--color-border); border-radius: 0.5rem; }
+.settings-field input[readonly] { color: var(--color-muted); background: #f9fafb; }
+.settings-field input[aria-invalid="true"] { border-color: #b91c1c; }
+.settings-panels .button:disabled { opacity: 0.55; cursor: default; filter: none; }
+.settings-panels .settings-draft-status { margin-top: 0.75rem; font-size: 0.8125rem; }
+.settings-panels p[role="status"] { margin-top: 0.75rem; }
+.settings-switch-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding-block: 0.75rem; min-height: 44px; border-bottom: 1px solid var(--color-border); cursor: pointer; font-size: 0.875rem; }
+.settings-switch { appearance: none; position: relative; flex: 0 0 30px; width: 30px; height: 18px; margin: 0; border: 1px solid #6b7280; border-radius: 999px; background: #6b7280; cursor: pointer; }
+.settings-switch::before { content: ""; position: absolute; width: 12px; height: 12px; left: 2px; top: 2px; border-radius: 50%; background: white; }
+.settings-switch:checked { background: var(--color-primary); border-color: var(--color-primary); }
+.settings-switch:checked::before { transform: translateX(12px); }
+.settings-switch:focus-visible { outline: 3px solid var(--color-primary); outline-offset: 3px; }
+.settings-panels section > .settings-preview-note { margin-top: 1.25rem; }
+@media (max-width: 650px) { .settings-panels { grid-template-columns: 1fr; } }
+
+.mentor-account-trigger { border: 0; cursor: pointer; }
+.mentor-account-panel { width: min(36rem, calc(100% - 2rem)); max-height: calc(100dvh - 2rem); overflow-y: auto; padding: 1.25rem; border: 1px solid var(--color-border); border-radius: .75rem; background: white; color: var(--color-text); }
+.mentor-account-panel::backdrop { background: #15132b99; }
+.mentor-account-panel__header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.mentor-account-panel__header h2 { font-size: 1.125rem; margin: 0; }
+.settings-panels--mentor { grid-template-columns: 1fr; gap: .75rem; }
+.settings-panels--mentor .card { padding: 1rem; }
+.mentor-account-discard { padding: 1rem; border: 1px solid var(--color-primary); border-radius: .5rem; margin-top: 1rem; }
+
+.mentor-account-panel__header { color: var(--color-navy); padding-bottom: 1rem; border-bottom: 1px solid var(--color-border); }
+.mentor-account-form { padding-top: 1.25rem; }
+.mentor-account-form > .button:disabled { opacity: .55; cursor: default; }
+.mentor-account-section { margin-top: 1.25rem; padding-top: .5rem; border-top: 1px solid var(--color-border); }
+.mentor-account-section h3 { color: var(--color-navy); font-size: 1rem; }
+.mentor-account-discard h3 { margin-top: 0; color: var(--color-navy); }
