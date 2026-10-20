@@ -1,3 +1,4 @@
+import { previewsEnabled } from "../services/developmentPreviews.js";
 import "../styles/auth.css";
 
 function Welcome({ onNavigate }) {
@@ -16,7 +17,7 @@ function Welcome({ onNavigate }) {
             I already have an account
           </button>
         </div>
-        {import.meta.env.DEV && (
+        {previewsEnabled && (
           <p className="auth-note">
             <button type="button" className="button button--secondary" onClick={() => onNavigate("preview")}>
               Preview Board
