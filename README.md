@@ -69,3 +69,24 @@ The API runs on `http://localhost:5000` by default; the client runs on `http://l
 
 CSCE 3444 — Software Engineering, University of North Texas
 Instructor: Prof. Hadiseh Gooran
+
+## Frontend navigation and optional previews
+
+Successful sign-in replaces the login URL with the role dashboard: Applicant
+`/board`, Mentor `/mentor/students`, or Administrator `/admin/users`. Header
+navigation uses the History API; refresh restores the session before resolving
+protected routes. Production hosting must serve `client/dist/index.html` for
+frontend deep links (and keep `/api` routed to the backend).
+
+Landing-page previews are hidden by default, including in development. To opt in
+for a local development session only, start Vite from `client/` in PowerShell:
+
+```powershell
+$env:VITE_ENABLE_PREVIEWS = 'true'
+npm run dev
+```
+
+Stop Vite and remove the opt-in with `Remove-Item Env:VITE_ENABLE_PREVIEWS` before
+restarting for a clean demo. Production builds never enable preview entry points,
+even if the variable is set. Preview fixtures and browser storage remain separate
+from authenticated records.

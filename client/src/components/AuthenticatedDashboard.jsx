@@ -9,8 +9,7 @@ import AuthenticatedMentorDashboard from "../pages/AuthenticatedMentorDashboard.
 import AuthenticatedAdminDashboard from "../pages/AuthenticatedAdminDashboard.jsx";
 
 // Authenticated navigation deliberately never mounts fixture-backed preview dashboards.
-export default function AuthenticatedDashboard({ user, api, onLogout, onProfile, warning }) {
-  const [page, setPage] = useState(user.role === "admin" ? "users" : user.role === "mentor" ? "students" : "board");
+export default function AuthenticatedDashboard({ user, api, onLogout, onProfile, warning, page, onNavigate }) {
   const [accountOpen, setAccountOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -23,7 +22,7 @@ export default function AuthenticatedDashboard({ user, api, onLogout, onProfile,
     finally { setBusy(false); }
   }
   return <>
-    <Header variant={user.role} activePage={page} onNavigate={setPage} userInitial={Array.from(user.name.trim())[0]?.toUpperCase() || "?"} accountControl={user.role === "mentor" ? <button type="button" className="site-header__avatar mentor-account-trigger" aria-label={`Account settings for ${user.name}`} aria-haspopup="dialog" aria-expanded={accountOpen} onClick={() => setAccountOpen(true)}>{Array.from(user.name.trim())[0]?.toUpperCase() || "?"}</button> : undefined} />
+    <Header variant={user.role} activePage={page} onNavigate={onNavigate} userInitial={Array.from(user.name.trim())[0]?.toUpperCase() || "?"} accountControl={user.role === "mentor" ? <button type="button" className="site-header__avatar mentor-account-trigger" aria-label={`Account settings for ${user.name}`} aria-haspopup="dialog" aria-expanded={accountOpen} onClick={() => setAccountOpen(true)}>{Array.from(user.name.trim())[0]?.toUpperCase() || "?"}</button> : undefined} />
     {user.role === "admin" && <div className="content-container">
       <section className="card" aria-labelledby="account-page-title">
         <h2 id="account-page-title">Your account</h2>
@@ -33,12 +32,12 @@ export default function AuthenticatedDashboard({ user, api, onLogout, onProfile,
         <button type="button" className="button" disabled={busy} onClick={logout}>{busy ? "Logging out…" : "Log out"}</button>
       </section>
     </div>}
-    {user.role === "applicant" && <ApplicantBoard api={api} active={page === "board"} onMentors={() => setPage("mentors")} />}
+    {user.role === "applicant" && <ApplicantBoard api={api} active={page === "board"} onMentors={() => onNavigate("mentors")} />}
     {user.role === "applicant" && page === "analytics" && <ApplicantAnalytics api={api} />}
-    {user.role === "applicant" && page === "mentors" && <ApplicantMentors api={api} onBackToBoard={() => setPage("board")} />}
+    {user.role === "applicant" && page === "mentors" && <ApplicantMentors api={api} onBackToBoard={() => onNavigate("board")} />}
     {user.role === "applicant" && <ApplicantSettings api={api} accountId={user.id} active={page === "settings"} onProfile={onProfile} onLogout={logout} logoutPending={busy} logoutError={error} warning={warning} />}
     {user.role === "mentor" && accountOpen && <MentorAccountPanel api={api} user={user} onProfile={onProfile} onClose={() => setAccountOpen(false)} onLogout={logout} logoutPending={busy} logoutError={error} warning={warning} />}
-    {user.role === "mentor" && <AuthenticatedMentorDashboard api={api} user={user} page={page} onNavigate={setPage} />}
+    {user.role === "mentor" && <AuthenticatedMentorDashboard api={api} user={user} page={page} onNavigate={onNavigate} />}
     {user.role === "admin" && <AuthenticatedAdminDashboard api={api} user={user} page={page} />}
   </>;
 }

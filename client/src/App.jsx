@@ -17,6 +17,8 @@ import ConfirmDialog from "./components/ConfirmDialog.jsx";
 import useSession from "./services/useSession.js";
 import AuthenticatedDashboard from "./components/AuthenticatedDashboard.jsx";
 import { publicPath, publicScreen } from "./services/publicNavigation.js";
+import { dashboardPath, dashboardPage, sessionPath, writePath } from "./services/dashboardNavigation.js";
+import { previewsEnabled } from "./services/developmentPreviews.js";
 
 const pageTitles = {
   board: "My Applications",
@@ -27,19 +29,33 @@ const pageTitles = {
 
 function App() {
   const session = useSession();
+  const [pathname, setPathname] = useState(() => window.location.pathname);
   const [screen, setScreen] = useState(() => publicScreen(window.location.pathname));
-  function navigate(nextScreen) {
+  function navigate(nextScreen, replace = false) {
     session.cancelAuthentication();
     const path = publicPath(nextScreen);
-    if (window.location.pathname !== path) window.history.pushState({}, "", path);
+    writePath(window.history, window.location, path, replace);
+    setPathname(path);
     setScreen(nextScreen);
   }
   useEffect(() => {
-    function backOrForward() { session.cancelAuthentication(); setScreen(publicScreen(window.location.pathname)); }
+    function backOrForward() { session.cancelAuthentication(); setPathname(window.location.pathname); setScreen(publicScreen(window.location.pathname)); }
     window.addEventListener("popstate", backOrForward);
     return () => window.removeEventListener("popstate", backOrForward);
   }, []);
-  useEffect(() => { if (session.ended) navigate("login"); }, [session.ended]);
+  useEffect(() => { if (session.ended) navigate("login", true); }, [session.ended]);
+  useEffect(() => {
+    const path = sessionPath(pathname, session.user, session.restoring);
+    if (path !== pathname) {
+      writePath(window.history, window.location, path, true);
+      setPathname(path); setScreen(publicScreen(path));
+    }
+  }, [pathname, session.user?.id, session.user?.role, session.restoring]);
+  function navigateDashboard(page) {
+    const path = dashboardPath(session.user.role, page);
+    writePath(window.history, window.location, path);
+    setPathname(path);
+  }
   const [activePage, setActivePage] = useState("board");
   const [startup, setStartup] = useState(() => loadPreviewApplications(false));
   const [applications, setApplications] = useState(startup.applications);
@@ -50,7 +66,7 @@ function App() {
   const [settingsStartup, setSettingsStartup] = useState(() => loadPreviewSettings(false));
   const [previewSettings, setPreviewSettings] = useState(settingsStartup.settings);
   function saveSettings(draft) {
-    const result = savePreviewSettings(editableSettingsUpdate(draft, previewSettings), import.meta.env.DEV);
+    const result = savePreviewSettings(editableSettingsUpdate(draft, previewSettings), previewsEnabled);
     if (!result.error) setPreviewSettings(result.settings);
     return result;
   }
@@ -59,7 +75,7 @@ function App() {
   const mentorLinksRef = useRef(previewMentorLinks);
   const [mentorStorageError, setMentorStorageError] = useState("");
   const [previewLoaded, setPreviewLoaded] = useState(false);
-  const previewActive = import.meta.env.DEV && screen === "preview" && !session.user && !session.restoring;
+  const previewActive = previewsEnabled && screen === "preview" && !session.user && !session.restoring;
   useEffect(() => {
     if (!previewActive || previewLoaded) return;
     const storedApplications = loadPreviewApplications(true);
@@ -75,7 +91,7 @@ function App() {
     if (previewActive && previewLoaded) setMentorStorageError(savePreviewMentors(previewMentorLinks, true));
   }, [previewMentorLinks, previewActive, previewLoaded]);
   function invitePreviewMentor(email) {
-    if (!import.meta.env.DEV) return { error: "Mentor invitations are not connected yet." };
+    if (!previewsEnabled) return { error: "Mentor invitations are not connected yet." };
     const result = createPreviewInvitation(email, mentorLinksRef.current);
     if (!result.error) {
       mentorLinksRef.current = result.links;
@@ -119,20 +135,20 @@ function App() {
   if (session.restoring || (session.error && !session.user)) return <main className="content-container"><section className="card" aria-busy={session.restoring}>
     <h1>Checking your session</h1>
     <p role="status">{session.restoring ? "Please wait…" : session.error}</p>
-    {!session.restoring && <><button className="button" onClick={session.retry}>Retry</button> <button className="button button--secondary" onClick={() => { session.discard(); navigate("login"); }}>Return to Login</button></>}
+    {!session.restoring && <><button className="button" onClick={session.retry}>Retry</button> <button className="button button--secondary" onClick={() => { session.discard(); navigate("login", true); }}>Return to Login</button></>}
   </section></main>;
-  if (session.user) return <AuthenticatedDashboard key={`${session.user.id}-${session.user.role}`} api={session.api} user={session.user} onProfile={session.updateProfile} warning={[session.warning, session.error].filter(Boolean).join(" ")} onLogout={async () => { await session.logout(); navigate("welcome"); }} />;
+  if (session.user) return <AuthenticatedDashboard key={`${session.user.id}-${session.user.role}`} api={session.api} user={session.user} page={dashboardPage(session.user.role, pathname)} onNavigate={navigateDashboard} onProfile={session.updateProfile} warning={[session.warning, session.error].filter(Boolean).join(" ")} onLogout={async () => { await session.logout(); navigate("welcome", true); }} />;
 
-  if (screen === "mentorPreview" && import.meta.env.DEV) return <MentorDashboard onBack={() => setScreen("welcome")} />;
-  if (screen === "adminPreview" && import.meta.env.DEV) return <AdminDashboard onBack={() => setScreen("welcome")} />;
+  if (screen === "mentorPreview" && previewsEnabled) return <MentorDashboard onBack={() => setScreen("welcome")} />;
+  if (screen === "adminPreview" && previewsEnabled) return <AdminDashboard onBack={() => setScreen("welcome")} />;
 
   if (screen !== "preview") {
     return (
       <>
         {screen === "welcome" && <Welcome onNavigate={(nextScreen) => {
-          if (["preview", "mentorPreview", "adminPreview"].includes(nextScreen) && !import.meta.env.DEV) return;
+          if (["preview", "mentorPreview", "adminPreview"].includes(nextScreen) && !previewsEnabled) return;
           if (nextScreen === "preview") {
-            if (!import.meta.env.DEV) return;
+            if (!previewsEnabled) return;
             setActivePage("board");
           }
           navigate(nextScreen);
@@ -146,17 +162,17 @@ function App() {
     );
   }
 
-  if (!import.meta.env.DEV) return <Welcome onNavigate={navigate} />;
+  if (!previewsEnabled) return <Welcome onNavigate={navigate} />;
   if (!previewLoaded) return <main className="content-container"><p role="status">Loading development preview...</p></main>;
   return (
     <>
-      {import.meta.env.DEV && <aside className="dev-preview">
+      {previewsEnabled && <aside className="dev-preview">
         <p>Development preview — sample data saved in this browser only. Backend and reminder emails are not connected.</p>
         {startup.error && <p role="status">{startup.error}</p>}
         <p role="status">{notice}</p>
         {storageError && <p role="status">{storageError}</p>}
         <button type="button" className="auth-link" onClick={() => setScreen("welcome")}>Back to Welcome</button>
-        {import.meta.env.DEV && <button type="button" className="auth-link preview-reset" onClick={() => setConfirmation({ type: "reset" })}>Reset sample data</button>}
+        {previewsEnabled && <button type="button" className="auth-link preview-reset" onClick={() => setConfirmation({ type: "reset" })}>Reset sample data</button>}
       </aside>}
       <Header variant="applicant" activePage={activePage} onNavigate={setActivePage} userInitial={Array.from(previewSettings.name.trim())[0]?.toUpperCase() || "?"} />
       {activePage === "board" ? <Board key={resetVersion} applications={applications} onAdd={addApplication} onUpdate={updateApplication} onDelete={(application) => setConfirmation({ type: "delete", application })} onMentors={() => setActivePage("mentors")} /> : activePage === "analytics" ? <Analytics applications={applications} /> : activePage === "mentors" ? <Mentors links={previewMentorLinks} onInvite={invitePreviewMentor} onBackToBoard={() => setActivePage("board")} storageError={mentorStorageError || mentorStartup.error} /> : activePage === "settings" ? <Settings settings={previewSettings} onSave={saveSettings} loadError={settingsStartup.error} /> : <main className="content-container">
