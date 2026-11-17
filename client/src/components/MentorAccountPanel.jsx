@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import ActionNotice, { useActionNotice } from "./ActionNotice.jsx";
+import DeleteAccountSection from "./DeleteAccountSection.jsx";
 import useAuthenticatedSettings from "../services/useAuthenticatedSettings.js";
 import "../styles/settings.css";
 
@@ -90,6 +91,7 @@ export default function MentorAccountPanel({ api, user, onProfile, onClose, onLo
         {logoutError && <p role="alert">{logoutError}</p>}
         <button type="button" className="button button--secondary" disabled={busy} onClick={() => act("logout")}>{logoutPending ? "Logging out..." : "Log out"}</button>
       </section>
+      <DeleteAccountSection target={profile} disabled={busy || !state.settings} />
       {busy && <p role="status">Please wait for the current request before closing.</p>}
     </div>
   </dialog>;

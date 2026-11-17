@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AdminStats, AdminUsageMetrics, AdminUserTable } from "../components/AdminDashboardContent.jsx";
 import ConfirmDialog from "../components/ConfirmDialog.jsx";
+import DeleteAccountSection from "../components/DeleteAccountSection.jsx";
 import { createAdminApi, createAdminResource, createAdminStatusAction } from "../services/adminApi.js";
 import "../styles/admin.css";
 
@@ -64,6 +65,7 @@ export default function AuthenticatedAdminDashboard({ api, user, page }) {
     </> : <>
       {!forbidden && metrics.data && <AdminStats metrics={metrics.data} />}
       <p className="admin-metric-note">Active users are enabled accounts used in the last 30 days. Invitations is an all-time count of invitation links, including revoked links—not delivered emails. These totals apply to all accounts, regardless of search.</p>
+      <DeleteAccountSection admin />
       <p className="admin-metric-note">Search filters the full loaded account list in this browser. The API currently has no search parameters or pagination.</p>
       <button className="auth-link" disabled={pending || users.loading} onClick={refreshUsers}>Refresh accounts</button>
       {users.loading && <p role="status">Loading user accounts...</p>}

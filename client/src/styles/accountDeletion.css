@@ -1,0 +1,8 @@
+.account-deletion-section { margin-top: 1.5rem; padding: 1rem; border: 1px solid #b91c1c; border-radius: .5rem; background: #fffafa; }
+.account-deletion-section h3 { margin-top: 0; color: #991b1b; }
+.account-deletion-section p { font-size: .875rem; line-height: 1.5; }
+.button--danger { background: #b91c1c; color: white; }
+.button--danger:disabled { opacity: .55; cursor: not-allowed; }
+.account-deletion-dialog { width: min(32rem, calc(100% - 2rem)); max-height: calc(100dvh - 2rem); overflow-y: auto; }
+.account-deletion-dialog label { display: block; font-weight: 600; margin-block: .75rem .25rem; }
+.account-deletion-dialog input { width: 100%; min-height: 44px; padding: .6rem; border: 1px solid var(--color-border); border-radius: .5rem; }

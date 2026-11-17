@@ -1,4 +1,5 @@
 import Settings from "./Settings.jsx";
+import DeleteAccountSection from "../components/DeleteAccountSection.jsx";
 import useAuthenticatedSettings from "../services/useAuthenticatedSettings.js";
 
 export default function ApplicantSettings({ api, accountId, active, onProfile, onLogout, logoutPending, logoutError, warning }) {
@@ -19,6 +20,7 @@ export default function ApplicantSettings({ api, accountId, active, onProfile, o
       {warning && <p role="status">{warning}</p>}
       {logoutError && <p role="alert">{logoutError}</p>}
       <button type="button" className="button button--secondary" disabled={logoutPending} onClick={onLogout}>{logoutPending ? "Logging out..." : "Log out"}</button>
+      <DeleteAccountSection target={state.settings} disabled={state.loading || logoutPending} />
     </div></section>
   </div>;
 }
