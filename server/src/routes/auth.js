@@ -6,6 +6,7 @@ import { validateRegistration } from "../lib/validators.js";
 import { signToken } from "../lib/jwt.js";
 import { UserFactory } from "../lib/userFactory.js";
 import { requireAuth } from "../middleware/requireAuth.js";
+import { deleteAccount, anotherAdminExists } from "../lib/accountDeletion.js";
 
 const router = Router();
 
@@ -71,6 +72,30 @@ router.post("/logout", requireAuth, async (req, res) => {
 router.get("/me", requireAuth, async (req, res) => {
   const user = await User.findById(req.userId);
   res.json(publicUser(user));
+});
+
+/**
+ * DELETE /api/auth/me — FR-15: delete your own account.
+ * Body: { password } (your current password, re-entered to confirm).
+ * Applicants and mentors can always delete themselves; an admin only if
+ * another admin account remains. See lib/accountDeletion.js for what is removed.
+ */
+router.delete("/me", requireAuth, async (req, res) => {
+  const { password } = req.body;
+  if (!password) {
+    return res.status(400).json({ error: "Enter your password to confirm.", code: "password-required" });
+  }
+
+  const user = await User.findById(req.userId);
+  if (!(await bcrypt.compare(String(password), user.passwordHash))) {
+    return res.status(400).json({ error: "Incorrect password.", code: "invalid-password" });
+  }
+  if (user.role === "admin" && !(await anotherAdminExists(user._id))) {
+    return res.status(403).json({ error: "You are the only admin, so this account can't be deleted.", code: "last-admin" });
+  }
+
+  await deleteAccount(user);
+  res.json({ deleted: true, id: String(user._id) });
 });
 
 export default router;
