@@ -14,6 +14,8 @@ import { UserFactory } from "../src/lib/userFactory.js";
 import { checkAndSendDeadlineReminders } from "../src/lib/reminderJob.js";
 import User from "../src/models/User.js";
 import Application from "../src/models/Application.js";
+import Feedback from "../src/models/Feedback.js";
+import MentorLink from "../src/models/MentorLink.js";
 
 const TEST_DB = "waypoint_smoketest";
 process.env.JWT_SECRET ||= "smoke-test-secret";
@@ -257,6 +259,81 @@ try {
   check("Metrics", r.status === 200 && r.data.totalUsers === 3 && r.data.invitationsSent === 1 && r.data.disabledAccounts === 0, r.data);
   r = await api("GET", "/api/applications", { token: admin });
   check("FR-11 Admin cannot read application data → 403", r.status === 403, r);
+
+  section("FR-15 Delete account (self)");
+  const aliceAppsBefore = await Application.countDocuments({ owner: aliceId });
+  const reg = async (name, email, role) =>
+    (await api("POST", "/api/auth/register", { body: { name, email, password: "Password1", role } })).data;
+  const bob = await reg("Bob", "bob@example.com", "applicant");
+  const carl = await reg("Carl", "carl@example.com", "mentor");
+  const bobApp = (await api("POST", "/api/applications", { token: bob.token, body: { company: "Jane Street", position: "SWE Intern" } })).data._id;
+  await api("POST", "/api/applications", { token: bob.token, body: { company: "HRT", position: "SWE Intern" } });
+  await api("POST", "/api/mentors/invite", { token: bob.token, body: { mentorEmail: "carl@example.com" } });
+  await api("POST", "/api/mentors/invite", { token: bob.token, body: { mentorEmail: "nobody-yet@example.com" } });
+  const carlInvite = (await api("GET", "/api/mentors/invitations", { token: carl.token })).data[0];
+  await api("POST", `/api/mentors/invitations/${carlInvite._id}/accept`, { token: carl.token });
+  r = await api("POST", `/api/applications/${bobApp}/feedback`, { token: carl.token, body: { comment: "Practice OA timing." } });
+  check("Setup: mentor feedback on Bob's application", r.status === 201, r);
+
+  r = await api("DELETE", "/api/auth/me", { token: bob.token, body: {} });
+  check("No password → 400 password-required", r.status === 400 && r.data.code === "password-required", r);
+  r = await api("DELETE", "/api/auth/me", { token: bob.token, body: { password: "wrong" } });
+  check("Wrong password → 400 invalid-password (not 401)", r.status === 400 && r.data.code === "invalid-password", r);
+  r = await api("DELETE", "/api/auth/me", { token: bob.token, body: { password: "Password1" } });
+  check("Applicant deletes own account → 200 { deleted, id }", r.status === 200 && r.data.deleted === true && r.data.id === bob.user.id, r);
+  r = await api("GET", "/api/auth/me", { token: bob.token });
+  check("Deleted user's token → 401", r.status === 401, r);
+  r = await api("POST", "/api/auth/login", { body: { email: "bob@example.com", password: "Password1" } });
+  check("Deleted user cannot log in", r.status === 401, r);
+  check(
+    "Applications, their feedback and all mentor links removed",
+    (await Application.countDocuments({ owner: bob.user.id })) === 0 &&
+      (await Feedback.countDocuments({ applicationId: bobApp })) === 0 &&
+      (await MentorLink.countDocuments({ applicant: bob.user.id })) === 0
+  );
+  r = await api("GET", "/api/mentors/roster", { token: carl.token });
+  check("Mentor's roster no longer shows the deleted applicant", r.status === 200 && r.data.length === 0, r);
+  r = await api("POST", "/api/auth/register", { body: { name: "Bob", email: "bob@example.com", password: "Password1" } });
+  check("Email can be registered again afterwards", r.status === 201, r);
+
+  const erin = await reg("Erin", "erin@example.com", "applicant");
+  const erinApp = (await api("POST", "/api/applications", { token: erin.token, body: { company: "IMC", position: "SWE" } })).data._id;
+  await api("POST", "/api/mentors/invite", { token: erin.token, body: { mentorEmail: "carl@example.com" } });
+  const erinInvite = (await api("GET", "/api/mentors/invitations", { token: carl.token })).data[0];
+  await api("POST", `/api/mentors/invitations/${erinInvite._id}/accept`, { token: carl.token });
+  await api("POST", `/api/applications/${erinApp}/feedback`, { token: carl.token, body: { comment: "Looks good." } });
+  r = await api("DELETE", "/api/auth/me", { token: carl.token, body: { password: "Password1" } });
+  check("Mentor deletes own account → 200", r.status === 200 && r.data.deleted === true, r);
+  r = await api("GET", `/api/applications/${erinApp}/feedback`, { token: erin.token });
+  check("Mentor's feedback removed; applicant's application kept", r.status === 200 && r.data.length === 0, r);
+  r = await api("GET", "/api/mentors", { token: erin.token });
+  check("Applicant's link to the deleted mentor removed", r.status === 200 && r.data.length === 0, r);
+  check("Other users' data untouched", (await Application.countDocuments({ owner: aliceId })) === aliceAppsBefore);
+
+  r = await api("DELETE", "/api/auth/me", { token: admin, body: { password: "Password1" } });
+  check("Last admin cannot delete self → 403 last-admin", r.status === 403 && r.data.code === "last-admin", r);
+
+  section("FR-15 Delete account (admin)");
+  r = await api("DELETE", `/api/admin/users/${erin.user.id}`, { token: alice, body: { password: "Password1" } });
+  check("Non-admin → 403", r.status === 403, r);
+  r = await api("DELETE", `/api/admin/users/${erin.user.id}`, { token: admin, body: { password: "wrong" } });
+  check("Wrong admin password → 400 invalid-password", r.status === 400 && r.data.code === "invalid-password", r);
+  r = await api("DELETE", `/api/admin/users/${erin.user.id}`, { token: admin, body: { password: "Password1" } });
+  check("Active (not disabled) account → 403 not-disabled", r.status === 403 && r.data.code === "not-disabled", r);
+  const adminId = (await api("GET", "/api/auth/me", { token: admin })).data.id;
+  r = await api("DELETE", `/api/admin/users/${adminId}`, { token: admin, body: { password: "Password1" } });
+  check("Admin cannot delete self here → 403 self-delete", r.status === 403 && r.data.code === "self-delete", r);
+  r = await api("DELETE", "/api/admin/users/64b000000000000000000000", { token: admin, body: { password: "Password1" } });
+  check("Unknown id → 404", r.status === 404, r);
+  await api("PATCH", `/api/admin/users/${erin.user.id}/disable`, { token: admin });
+  r = await api("DELETE", `/api/admin/users/${erin.user.id}`, { token: admin, body: { password: "Password1" } });
+  check("Disabled account deleted → 200", r.status === 200 && r.data.id === erin.user.id, r);
+  check("Its applications removed too", (await Application.countDocuments({ owner: erin.user.id })) === 0);
+
+  const admin2 = await UserFactory.create("admin", { name: "Root2", email: "admin2@example.com", password: "Password1" });
+  await api("PATCH", `/api/admin/users/${admin2._id}/disable`, { token: admin });
+  r = await api("DELETE", `/api/admin/users/${admin2._id}`, { token: admin, body: { password: "Password1" } });
+  check("Another (disabled) admin can be deleted while one admin remains", r.status === 200, r);
 } catch (err) {
   failed++;
   console.error("\nTest run crashed:", err);

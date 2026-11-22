@@ -4,6 +4,8 @@ import Application from "../models/Application.js";
 import MentorLink from "../models/MentorLink.js";
 import { requireAuth } from "../middleware/requireAuth.js";
 import { requireRole } from "../middleware/requireRole.js";
+import bcrypt from "bcryptjs";
+import { deleteAccount, anotherAdminExists } from "../lib/accountDeletion.js";
 
 const router = Router();
 // FR-13/14 Security: every route below is restricted to role "admin".
@@ -44,6 +46,40 @@ function setDisabled(disabled) {
 
 router.patch("/users/:id/disable", setDisabled(true));
 router.patch("/users/:id/enable", setDisabled(false));
+
+/**
+ * DELETE /api/admin/users/:id — FR-15: permanently delete an account.
+ * Body: { password } (the admin's own password, re-entered to confirm).
+ * Rules: the account must already be disabled (FR-13), an admin can't
+ * delete themselves here (use DELETE /api/auth/me), and the last admin
+ * can never be deleted.
+ */
+router.delete("/users/:id", async (req, res) => {
+  const { password } = req.body;
+  if (!password) {
+    return res.status(400).json({ error: "Enter your password to confirm.", code: "password-required" });
+  }
+
+  const admin = await User.findById(req.userId);
+  if (!(await bcrypt.compare(String(password), admin.passwordHash))) {
+    return res.status(400).json({ error: "Incorrect password.", code: "invalid-password" });
+  }
+  if (req.params.id === req.userId) {
+    return res.status(403).json({ error: "You can't delete your own account here.", code: "self-delete" });
+  }
+
+  const target = await User.findById(req.params.id);
+  if (!target) return res.status(404).json({ error: "User not found." });
+  if (!target.disabled) {
+    return res.status(403).json({ error: "Disable this account before deleting it.", code: "not-disabled" });
+  }
+  if (target.role === "admin" && !(await anotherAdminExists(target._id))) {
+    return res.status(403).json({ error: "The last admin account can't be deleted.", code: "last-admin" });
+  }
+
+  await deleteAccount(target);
+  res.json({ deleted: true, id: String(target._id) });
+});
 
 // GET /api/admin/metrics — FR-14: basic usage metrics (matches the Admin Dashboard cards)
 router.get("/metrics", async (req, res) => {
