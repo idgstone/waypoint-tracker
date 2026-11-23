@@ -34,14 +34,18 @@ All backend FRs (1–14) are implemented and pass `npm run smoke`
 - **Feedback (FR-10)**: mentor-only post, visible to applicant and
   linked mentor.
 - **Admin (FR-13, FR-14)**: list/disable/enable, metrics.
+- **Account deletion (FR-15)**: self-delete and admin delete (disabled
+  accounts only), password re-entry, last admin protected, all related
+  data removed in one transaction.
 - **Observer pattern** (`src/lib/applicationEvents.js`).
 - **Stability**: Express 5, so a bad id returns 400 instead of crashing
   the server.
 
 ### Still open
 
-1. **Run `npm run smoke` against Atlas** — the sandbox test used
-   FerretDB (MongoDB-compatible). Run once against the real cluster.
+1. **Run `npm run smoke` against Atlas** — the FR-15 cases were tested
+   on FerretDB, which has no transactions. Run once against Atlas so the
+   transaction path is exercised too.
 2. **Real email send** — needs a live `EMAIL_SERVICE_API_KEY` and a
    verified sender address in SendGrid.
 3. **Deployment** (for the final presentation) — backend on
