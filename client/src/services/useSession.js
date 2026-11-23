@@ -41,7 +41,7 @@ export default function useSession() {
         ? { id: profile.id, name: profile.name, email: profile.email, role: profile.role } : previous);
     },
     user, restoring, error, ended, warning: api.storageWarning(), retry: () => restore(),
-    discard() { generation.current++; api.clear(); setError(""); setUser(null); setRestoring(false); },
+    discard() { generation.current++; api.clear(); setError(""); setEnded(""); setUser(null); setRestoring(false); },
     async authenticate(mode, values) {
       const authenticated = await api.authenticate(mode, values);
       generation.current++; setUser(authenticated); setEnded(""); setError(""); setRestoring(false);

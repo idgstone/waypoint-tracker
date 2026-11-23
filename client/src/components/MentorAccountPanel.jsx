@@ -4,7 +4,7 @@ import DeleteAccountSection from "./DeleteAccountSection.jsx";
 import useAuthenticatedSettings from "../services/useAuthenticatedSettings.js";
 import "../styles/settings.css";
 
-export default function MentorAccountPanel({ api, user, onProfile, onClose, onLogout, logoutPending, logoutError, warning }) {
+export default function MentorAccountPanel({ api, user, onProfile, onClose, onLogout, logoutPending, logoutError, warning, onDelete, deletionScope }) {
   const { state, save, retry } = useAuthenticatedSettings({ api, accountId: user.id, active: true, onProfile });
   const [name, setName] = useState(user.name);
   const [touched, setTouched] = useState(false);
@@ -91,7 +91,7 @@ export default function MentorAccountPanel({ api, user, onProfile, onClose, onLo
         {logoutError && <p role="alert">{logoutError}</p>}
         <button type="button" className="button button--secondary" disabled={busy} onClick={() => act("logout")}>{logoutPending ? "Logging out..." : "Log out"}</button>
       </section>
-      <DeleteAccountSection target={profile} disabled={busy || !state.settings} />
+      <DeleteAccountSection target={profile} disabled={busy || !state.settings} available={Boolean(onDelete)} onDelete={onDelete} scope={deletionScope} />
       {busy && <p role="status">Please wait for the current request before closing.</p>}
     </div>
   </dialog>;

@@ -1,114 +1,104 @@
-# FR-15 frontend readiness — awaiting agreement
+# Account deletion integration (FR-15)
 
-## Evidence inspected
+## Confirmed contract and policy
 
-- `server/API_CONTRACT.md` documents FR-1–14. Auth supports register/login/me/logout;
-  Settings supports GET/PATCH; Admin supports list/disable/enable/metrics.
-- Actual auth, settings, and admin routes contain no permanent account-deletion
-  endpoint. Application/note/link deletion does not authorize account deletion.
-- README refers to the SRS and Production Plan through an Information Sheet, but
-  provides no document contents or link. BACKEND_TASKS.md names
-  `Group8_Waypoint_Production_Plan.xlsx`; that file and an SRS were not found in
-  the repository, Downloads, Documents, or Desktop filename searches.
-- Available `Downloads/Trello_Task_List.md` covers FR-1–14 and contains no FR-15.
-  Its task notes are context, not authorization to change backend files or run
-  smoke tests. No AGENTS.md was found in the project.
+Backend PR #4 is merged into main. The source of truth is
+server/API_CONTRACT.md, Account deletion, and the auth/admin route implementations.
 
-## Current production behavior
+- Self: DELETE /api/auth/me with JSON { password: currentPassword }.
+- Admin: DELETE /api/admin/users/:id with JSON { password: actingAdminPassword }.
+  The target must already be disabled. The UI never offers self-deletion through
+  this route. The backend also enforces self-delete and last-admin protections.
+- Both require Bearer authentication and HTTP 200 with { deleted: true, id }.
+  The frontend verifies the exact target ID; 204, other success statuses, missing
+  fields, or mismatched IDs are not accepted as confirmed deletion.
+- Applicant removal includes the account, all owned applications (notes/history),
+  all feedback on those applications, and every mentor link they created.
+- Mentor removal includes the account, all links to them (any status), and all
+  feedback they authored. Applicants retain their applications.
+- Admin removal deletes the account only. Self-deletion by an Admin is supported
+  by the API only if another Admin exists; this frontend exposes self-deletion in
+  Applicant/Mentor settings, and disabled-target deletion in Admin management.
 
-Applicant Settings and the Mentor account panel show separated Delete account
-sections. Their buttons open the real confirmation component. Admin shows only
-"Account deletion is not available yet.";
-no target-row deletion action is exposed. Profile save, logout, account status
-actions, and previews are unchanged. No password is collected for unavailable
-deletion. No deletion URL or HTTP method has been guessed.
+## Request and UI flow
 
-`AccountDeletionDialog` is mounted by the settings sections when opened. It shows
-the current password field, Cancel, and Permanently delete account. While the API
-is unavailable, the final action is disabled and the password field is read-only.
-The only availability message is "Account deletion is not available yet." No
-retention promises or implementation blockers appear in product copy.
-`createDeletionAttempt` accepts injected execution, confirmation validation, and
-completion callbacks. These are internal interfaces tested with mocks, not a
-proposed server response schema. The caller must supply approved scope text.
-Admin eligibility fails closed without an explicitly approved policy and always
-denies self-deletion. A disabled-only rule exists only as a hypothetical test
-fixture, not an agreed project restriction.
+createAccountDeletionApi uses the existing api.request transport, exact DELETE
+paths, JSON password body, and expectedStatus: 200. Passwords are never placed in
+URLs, storage, screenshots, or logs. No deletion request is automatically retried.
 
-## Callback/request handoff
+createDeletionAttempt is kept stable across rerenders and dialog reopenings. It
+locks duplicate submissions and refuses another request after an ambiguous result
+or a confirmed success. A network error, unreadable/incorrect response, or uncertain
+server failure retains local account data and requires checking the account state.
 
-`DeleteAccountSection` accepts `target` (the saved profile's name/email),
-`disabled` (loading or other pending actions), `available` (default false),
-`scope` (approved detailed removal wording), and `onDelete(password)`.
-Both actual self-service locations supply only the saved profile and disabled
-state today. No request adapter is connected and no deletion is simulated.
+The shared ApiError preserves the documented code. A 400 invalid-password is an
+inline password error; the field is cleared and may be re-entered. A 403 last-admin,
+not-disabled, or self-delete displays a refusal without clearing the Admin session.
+Protected 401 and the existing disabled-account 403 contract still end the session.
+A 404 is not treated as successful deletion.
 
-Before setting `available=true`, provide all three: the approved scope text, a
-real request adapter, and confirmed API availability. `deletionReady` rejects
-missing/blank scope and missing callbacks even if the flag is accidentally true.
+Self-deletion success calls the existing session discard/clear, unmounts the
+account-keyed dashboard, and replaces the URL with Welcome. A brief announcement
+confirms deletion. It never calls logout on the now-deleted account.
 
-Create a stable `onDelete` with `createDeletionAttempt({ execute, isConfirmed,
-onConfirmed })`. `execute(password)` must use the existing `api.request` with the
-agreed path/method and password JSON-body field, not a URL parameter. None of those
-server contract details is assumed by this code. `isConfirmed(result)` must check
-the documented response and affected-account identity; support 204 only if that
-is explicitly the agreed success contract. A resolved promise alone is not proof.
+Admin success removes only the verified target row and reloads usage statistics.
+The acting Admin session remains active. Statistics failures retain the deletion
+confirmation and expose the existing Retry statistics control; they do not repeat
+DELETE. Server-side authorization remains authoritative.
 
-For self-deletion, `onConfirmed` clears the existing session via its discard/clear
-method and replaces navigation with Welcome, unmounting account-specific state.
-For Admin deletion, it removes the validated target row and refreshes statistics
-without discarding the acting Admin session. Do not clear state on rejection or
-an ambiguous response. Keep the attempt instance stable so pending/uncertain/
-completed guards cannot reset on an incidental rerender.
+Dialogs retain visible identity, approved consequences, current-password labels,
+Cancel/Escape clearing, focus containment/restoration, pending/error states, and
+password-only validation messages. The Admin dialog explicitly asks for the acting
+administrator's current password. Applicant/Mentor previews remain isolated and
+have no deletion API integration.
 
-The dialog keeps the password only in component memory and clears it on Cancel,
-Escape, completion/failure, and unmount. While a destructive request is pending,
-Cancel/Escape clear the field but do not pretend to cancel the sent request or
-dismiss its pending result. Recoverable adapter errors stay visible; uncertain
-responses disable another submission and never trigger an automatic retry.
+## Verification
 
-### Final handoff verification
+128 frontend tests pass, including exact paths/methods/password bodies and Bearer
+headers; refusal codes without logout; real authentication expiry/disabled errors;
+wrong-role/self/active-target blocking; confirmed self cleanup without logout;
+Admin row/statistics updates while retaining its session; malformed or ambiguous
+responses; no automatic retry; and stale responses after a session change.
+The production build and whitespace checks pass. These are mocked checks; no real
+accounts, applications, links, feedback, or email records were mutated.
+Previous fictional browser checks exercised Cancel/Escape, focus, password clearing,
+and nested Mentor dialogs. The new backend integration has not been exercised with
+live disposable accounts during this task.
 
-119 frontend tests and the production build pass. The finished Applicant and
-Mentor controls were checked in a fictional-profile browser harness: real
-Delete account buttons open the dialog, final submission stays disabled with
-the concise availability message, and no success is simulated. Nested Mentor
-Tab containment, Cancel, Escape, and focus restoration were verified. Password
-entry is intentionally read-only while no adapter is available. Earlier enabled
-mock-dialog tests covered clearing and error paths; these are not live API tests.
-The screenshot review harness and all fixtures remain isolated from real auth.
+## Disposable-account manual checks (human only)
 
-## Decisions needed from the team / Dung
+1. Use only consenting disposable accounts and records. Never use a real person's
+   account or shared project data. Create any fixtures manually; this task does not.
+2. Applicant: Settings > Delete account. Check identity and consequences; try Cancel
+   and Escape, then reopen to confirm an empty password field and restored focus.
+3. Enter an incorrect password. Expect inline Incorrect password, cleared field,
+   no success, and a still-active session. Enter the disposable account's current
+   password manually to confirm deletion. Expect Welcome, a brief confirmation,
+   no logout request, and no authenticated dashboard after refresh or Back.
+4. With the backend teammate, verify only that disposable Applicant's owned
+   applications/notes/history, feedback on them, and created mentor links are gone.
+5. Mentor: repeat through the avatar panel using a disposable Mentor. Verify its
+   authored feedback and links are removed; linked Applicants keep applications.
+6. Admin: use an authorized consenting test Admin. Active targets and your own row
+   offer no Delete action. Disable a disposable target manually if appropriate,
+   open Delete, and verify the target identity and acting Admin password label.
+7. Cancel/Escape first. Then test incorrect acting Admin password: Admin remains
+   signed in and the row/counts remain unchanged. Confirm manually only for the
+   disposable target; expect its row removed and statistics refreshed, Admin active.
+8. Refusals last-admin/not-disabled/self-delete are covered by mocks. Do not remove
+   or alter real Admins to manufacture them. Coordinate any live policy tests with
+   Dung in a dedicated disposable environment.
+9. For a lost response or network failure, check actual account state with Dung
+   before any further attempt. The UI does not automatically retry destructive calls.
 
-1. Publish FR-15 wording and the approved SRS/Production Plan revision.
-2. Define self-deletion roles, disabled-account behavior, and any protection for
-   administrator accounts (including the last administrator).
-3. Define the exact removal scope: user profile/credentials/sessions, owned
-   applications and notes/history, mentor links and invitations, reminder state,
-   feedback authored by a departing mentor and feedback on deleted applications.
-   Decide delete vs retain/anonymize, including historical email/audit records.
-4. Define Admin eligibility: disabled-only or other restrictions, allowed target
-   roles, and server-enforced self-deletion prevention.
-5. Specify whose password authorizes each operation. The UI is prepared to label
-   an acting Admin's password only if the approved contract says so; it is not an
-   existing backend rule. Never request the target user's password by assumption.
-6. Document exact endpoint, method, body, success response (including any 204),
-   invalid-password and forbidden errors, and transaction/partial-failure rules.
-   The current API helper treats protected 401 as session expiry: distinguish
-   incorrect confirmation password from expired authentication in the contract.
-7. Define timeout/ambiguous-result reconciliation and session invalidation so the
-   client can check state without automatically repeating a destructive request.
+## Remaining limitations / review notes
 
-## Future integration after agreement
-
-- Use the existing API helper for the documented request, sending the password
-  only in its body. No local/session storage, logs, or URL parameters.
-- Add an explicit response validator; empty/unknown JSON is not assumed success.
-  Enable controls only after approved scope, eligibility, and adapter are present.
-- On verified self-deletion, use existing session discard/clear, unmount the
-  account-keyed dashboard state, and replace navigation with Welcome. Do not call
-  logout against an already deleted account as a substitute for local cleanup.
-- On verified Admin deletion, remove only the returned/validated target and
-  reload statistics. Retain the acting Admin session. Never modify rows on error.
-- Keep unrelated preview records separate. No real deletion was performed during
-  this task. Production integration and actual retention guarantees remain blocked.
+- Live retention/cascades, email/reminder effects, authorization races, and session
+  cleanup against actual deletion responses still need the human checks above.
+- Atlas implementation uses a transaction. The backend implementation has a
+  non-transactional standalone fallback; failures there may leave dependent data
+  partially removed. The frontend treats failures as uncertain and does not retry.
+- Backend last-admin concurrency guarantees remain the backend team's concern.
+- Local-only review files are client/account-deletion-review.html and
+  client/account-deletion-review.jsx. They are untracked/ignored, retained locally,
+  and excluded from the final PR diff. They are not real authentication or API tests.

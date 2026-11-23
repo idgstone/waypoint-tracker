@@ -7,6 +7,7 @@ export default function AccountDeletionDialog({ target, scope, passwordLabel = "
   const dialog = useRef(null), field = useRef(null), lock = useRef(false);
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [passwordError, setPasswordError] = useState(false);
   const [pending, setPending] = useState(false);
   const [uncertain, setUncertain] = useState(false);
   const ready = deletionReady({ available, onDelete, scope });
@@ -19,13 +20,15 @@ export default function AccountDeletionDialog({ target, scope, passwordLabel = "
   async function submit(event) {
     event.preventDefault();
     if (lock.current || uncertain || !ready) return;
-    if (!password.trim()) { setError("Enter your current password."); field.current.focus(); return; }
-    lock.current = true; setPending(true); setError("");
+    if (!password.trim()) { setPasswordError(true); setError("Enter your current password."); field.current.focus(); return; }
+    lock.current = true; setPending(true); setError(""); setPasswordError(false);
     try { await onDelete(password); }
     catch (failure) {
       const message = String(failure.message || "Deletion could not be confirmed.");
       setError(message.includes(password) ? "Deletion could not be confirmed. Check your account before trying again." : message);
       setUncertain(Boolean(failure.uncertain));
+      setPasswordError(["invalid-password", "password-required"].includes(failure.code));
+      if (["invalid-password", "password-required"].includes(failure.code)) field.current?.focus();
     }
     finally { setPassword(""); if (field.current) field.current.value = ""; lock.current = false; setPending(false); }
   }
@@ -45,7 +48,7 @@ export default function AccountDeletionDialog({ target, scope, passwordLabel = "
     {!ready && <p id="account-delete-availability" role="status">{deletionUnavailable}</p>}
     <form onSubmit={submit} noValidate aria-busy={pending}>
       <label htmlFor="account-delete-password">{passwordLabel}</label>
-      <input ref={field} id="account-delete-password" type="password" autoComplete="current-password" value={password} readOnly={pending || !ready} required onChange={(event) => setPassword(event.target.value)} aria-invalid={Boolean(error)} aria-describedby={error ? "account-delete-error" : !ready ? "account-delete-availability" : undefined} />
+      <input ref={field} id="account-delete-password" type="password" autoComplete="current-password" value={password} readOnly={pending || !ready} required onChange={(event) => setPassword(event.target.value)} aria-invalid={passwordError} aria-describedby={error ? "account-delete-error" : !ready ? "account-delete-availability" : undefined} />
       {error && <p id="account-delete-error" role="alert">{error}</p>}
       {pending && <p role="status">Waiting for deletion confirmation...</p>}
       <div className="application-actions"><button type="button" className="button button--secondary" aria-disabled={pending} onClick={cancel}>Cancel</button><button type="submit" className="button button--danger" disabled={pending || uncertain || !ready}>{pending ? "Deleting..." : "Permanently delete account"}</button></div>

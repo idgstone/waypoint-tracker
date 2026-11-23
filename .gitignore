@@ -9,6 +9,8 @@ server/node_modules/
 server/.env
 
 # Build output
+client/account-deletion-review.html
+client/account-deletion-review.jsx
 client/dist/
 client/build/
 

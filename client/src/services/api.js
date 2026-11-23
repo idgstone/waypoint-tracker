@@ -1,5 +1,5 @@
 export class ApiError extends Error {
-  constructor(message, status = 0) { super(message); this.status = status; }
+  constructor(message, status = 0, code) { super(message); this.status = status; this.code = code; }
 }
 
 // One client instance owns the token. Preview storage is never read here.
@@ -20,7 +20,7 @@ export function createApi({ fetcher = (...args) => fetch(...args), storage = () 
     try { if (value) storage().setItem(key, value); else storage().removeItem(key); }
     catch { storageWarning = "Browser session storage is unavailable. This session will not survive a refresh."; }
   }
-  async function request(path, { method = "GET", body, protectedRequest = true, signal } = {}) {
+  async function request(path, { method = "GET", body, protectedRequest = true, signal, expectedStatus } = {}) {
     const version = sessionVersion;
     const headers = { Accept: "application/json" };
     if (body !== undefined) headers["Content-Type"] = "application/json";
@@ -35,12 +35,14 @@ export function createApi({ fetcher = (...args) => fetch(...args), storage = () 
     if (protectedRequest && version !== sessionVersion) throw new ApiError("Session changed. This response was discarded.", 499);
     if (!response.ok) {
       const message = typeof data?.error === "string" ? data.error : "The server could not complete the request. Please try again.";
-      if (protectedRequest && (response.status === 401 || (response.status === 403 && /account has been disabled/i.test(message)))) {
+      const expectedDeletionRefusal = response.status === 403 && ["last-admin", "not-disabled", "self-delete"].includes(data?.code);
+      if (protectedRequest && (response.status === 401 || (response.status === 403 && !expectedDeletionRefusal && /account has been disabled/i.test(message)))) {
         setToken(null);
         onSessionEnded(message);
       }
-      throw new ApiError(message, response.status);
+      throw new ApiError(message, response.status, typeof data?.code === "string" ? data.code : undefined);
     }
+    if (expectedStatus !== undefined && response.status !== expectedStatus) throw new ApiError("The server returned an unexpected response. Check the account state before continuing.", response.status);
     if (response.status !== 204 && data === null) throw new ApiError("The server returned an unreadable response. Please try again.");
     if (protectedRequest) onActivity();
     return data;

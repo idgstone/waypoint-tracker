@@ -19,6 +19,7 @@ import AuthenticatedDashboard from "./components/AuthenticatedDashboard.jsx";
 import { publicPath, publicScreen } from "./services/publicNavigation.js";
 import { dashboardPath, dashboardPage, sessionPath, writePath } from "./services/dashboardNavigation.js";
 import { previewsEnabled } from "./services/developmentPreviews.js";
+import ActionNotice, { useActionNotice } from "./components/ActionNotice.jsx";
 
 const pageTitles = {
   board: "My Applications",
@@ -29,6 +30,7 @@ const pageTitles = {
 
 function App() {
   const session = useSession();
+  const [deletionNotice, showDeletionNotice, dismissDeletionNotice] = useActionNotice();
   const [pathname, setPathname] = useState(() => window.location.pathname);
   const [screen, setScreen] = useState(() => publicScreen(window.location.pathname));
   function navigate(nextScreen, replace = false) {
@@ -137,7 +139,7 @@ function App() {
     <p role="status">{session.restoring ? "Please wait…" : session.error}</p>
     {!session.restoring && <><button className="button" onClick={session.retry}>Retry</button> <button className="button button--secondary" onClick={() => { session.discard(); navigate("login", true); }}>Return to Login</button></>}
   </section></main>;
-  if (session.user) return <AuthenticatedDashboard key={`${session.user.id}-${session.user.role}`} api={session.api} user={session.user} page={dashboardPage(session.user.role, pathname)} onNavigate={navigateDashboard} onProfile={session.updateProfile} warning={[session.warning, session.error].filter(Boolean).join(" ")} onLogout={async () => { await session.logout(); navigate("welcome", true); }} />;
+  if (session.user) return <AuthenticatedDashboard key={`${session.user.id}-${session.user.role}`} api={session.api} user={session.user} page={dashboardPage(session.user.role, pathname)} onNavigate={navigateDashboard} onProfile={session.updateProfile} warning={[session.warning, session.error].filter(Boolean).join(" ")} onDeleted={() => { session.discard(); navigate("welcome", true); showDeletionNotice("Your account has been permanently deleted."); }} onLogout={async () => { await session.logout(); navigate("welcome", true); }} />;
 
   if (screen === "mentorPreview" && previewsEnabled) return <MentorDashboard onBack={() => setScreen("welcome")} />;
   if (screen === "adminPreview" && previewsEnabled) return <AdminDashboard onBack={() => setScreen("welcome")} />;
@@ -145,6 +147,7 @@ function App() {
   if (screen !== "preview") {
     return (
       <>
+        {screen === "welcome" && <div className="content-container"><ActionNotice notice={deletionNotice} onDismiss={dismissDeletionNotice} /></div>}
         {screen === "welcome" && <Welcome onNavigate={(nextScreen) => {
           if (["preview", "mentorPreview", "adminPreview"].includes(nextScreen) && !previewsEnabled) return;
           if (nextScreen === "preview") {

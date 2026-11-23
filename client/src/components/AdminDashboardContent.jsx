@@ -1,13 +1,13 @@
 import { filterAdminUsers } from "../services/adminPresentation.js";
 
-export function AdminUserTable({ users, search, adminId, onAction, pending = false, preview = false }) {
+export function AdminUserTable({ users, search, adminId, onAction, onDelete, pending = false, preview = false }) {
   const visible = filterAdminUsers(users, search);
   return <div className="admin-table-scroll" role="region" aria-label="User accounts table, scroll horizontally on small screens" tabIndex={0}>
     <table className="admin-table"><caption>{preview ? "Fictional user accounts — status actions affect this browser only" : "User accounts — filtered by name or email"}</caption>
       <thead><tr>{["Name", "Email", "Role", "Status", "Action"].map((label) => <th key={label} scope="col">{label}</th>)}</tr></thead>
       <tbody>{visible.map((user) => <tr key={user._id}><th scope="row">{user.name}{user._id === adminId && <span className="admin-self"> (you)</span>}</th><td>{user.email}</td><td className="admin-role">{user.role}</td>
         <td><span className={`admin-status ${user.disabled ? "is-disabled" : "is-enabled"}`}><span aria-hidden="true">{user.disabled ? "✕" : "■"}</span> {user.disabled ? "Disabled" : "Enabled"}</span></td>
-        <td>{user._id === adminId ? <span className="admin-self">Cannot disable yourself</span> : <button type="button" className="button button--secondary" disabled={pending} aria-label={`${user.disabled ? "Re-enable" : "Disable"} ${user.name}`} onClick={() => onAction({ user, disabled: !user.disabled })}>{user.disabled ? "Re-enable" : "Disable"}</button>}</td>
+        <td>{user._id === adminId ? <span className="admin-self">Cannot disable or delete yourself here</span> : <><button type="button" className="button button--secondary" disabled={pending} aria-label={`${user.disabled ? "Re-enable" : "Disable"} ${user.name}`} onClick={() => onAction({ user, disabled: !user.disabled })}>{user.disabled ? "Re-enable" : "Disable"}</button>{onDelete && user.disabled && <button type="button" className="button button--danger" disabled={pending} aria-label={`Delete ${user.name}`} onClick={() => onDelete(user)}>Delete</button>}</>}</td>
       </tr>)}
         {!visible.length && <tr><td colSpan={5}>{users.length ? "No accounts match your search. Try another name or email." : preview ? "No preview accounts available." : "No user accounts found."}</td></tr>}
       </tbody>

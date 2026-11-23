@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AdminStats, AdminUsageMetrics, AdminUserTable } from "../components/AdminDashboardContent.jsx";
 import ConfirmDialog from "../components/ConfirmDialog.jsx";
-import DeleteAccountSection from "../components/DeleteAccountSection.jsx";
+import AccountDeletionDialog from "../components/AccountDeletionDialog.jsx";
+import { createAccountDeletionApi, createDeletionAttempt, deletionConfirmed, deletionScopes } from "../services/accountDeletion.js";
 import { createAdminApi, createAdminResource, createAdminStatusAction } from "../services/adminApi.js";
 import "../styles/admin.css";
 
@@ -15,6 +16,20 @@ export default function AuthenticatedAdminDashboard({ api, user, page }) {
   const [metrics, setMetrics] = useState(initial);
   const [search, setSearch] = useState("");
   const [confirmation, setConfirmation] = useState(null);
+  const [deleting, setDeleting] = useState(null);
+  const deletionAttempts = useMemo(() => new Map(), [api, user.id]);
+  function deleteTarget(target) {
+    if (!deletionAttempts.has(target._id)) {
+      const deletionService = createAccountDeletionApi(api, user);
+      deletionAttempts.set(target._id, createDeletionAttempt({ execute: (password) => deletionService.admin(target, password), isConfirmed: (result) => deletionConfirmed(result, target._id), onConfirmed: async () => {
+        if (!alive.current) return;
+        usersResource.replace((records) => (records || []).filter((record) => record._id !== target._id), publishUsers);
+        setDeleting(null); setNotice(`${target.name}'s account was permanently deleted.`);
+        await refreshMetrics();
+      } }));
+    }
+    return deletionAttempts.get(target._id);
+  }
   const [pending, setPending] = useState(false);
   const [notice, setNotice] = useState("");
   const [actionError, setActionError] = useState("");
@@ -65,13 +80,13 @@ export default function AuthenticatedAdminDashboard({ api, user, page }) {
     </> : <>
       {!forbidden && metrics.data && <AdminStats metrics={metrics.data} />}
       <p className="admin-metric-note">Active users are enabled accounts used in the last 30 days. Invitations is an all-time count of invitation links, including revoked links—not delivered emails. These totals apply to all accounts, regardless of search.</p>
-      <DeleteAccountSection admin />
       <p className="admin-metric-note">Search filters the full loaded account list in this browser. The API currently has no search parameters or pagination.</p>
       <button className="auth-link" disabled={pending || users.loading} onClick={refreshUsers}>Refresh accounts</button>
       {users.loading && <p role="status">Loading user accounts...</p>}
       {users.error && <p role="alert">{users.error} <button className="button button--secondary" disabled={pending || users.loading} onClick={refreshUsers}>Retry accounts</button>{users.data && " Showing last confirmed accounts."}</p>}
-      {!forbidden && users.data && <AdminUserTable users={users.data} search={search} adminId={user.id} pending={pending || users.loading} onAction={setConfirmation} />}
+      {!forbidden && users.data && <AdminUserTable users={users.data} search={search} adminId={user.id} pending={pending || users.loading} onAction={setConfirmation} onDelete={setDeleting} />}
     </>}
+    {deleting && <AccountDeletionDialog key={deleting._id} target={deleting} available scope={deletionScopes[deleting.role]} passwordLabel="Your current administrator password" onCancel={() => setDeleting(null)} onDelete={deleteTarget(deleting)} />}
     {confirmation && <ConfirmDialog title={`${confirmation.disabled ? "Disable" : "Re-enable"} account?`} confirmLabel={confirmation.disabled ? "Disable" : "Re-enable"} onCancel={() => setConfirmation(null)} onConfirm={confirm}>
       <p>{confirmation.disabled ? "Disable" : "Re-enable"} <strong>{confirmation.user.name}</strong> ({confirmation.user.email})?</p>
       <p>This changes a real account. It takes effect on the user's next request.</p>

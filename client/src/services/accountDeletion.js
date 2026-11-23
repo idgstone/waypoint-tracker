@@ -1,5 +1,25 @@
-// FR-15 has no production contract. Deliberately no endpoint/default executor.
+import { ApiError } from "./api.js";
+// Contract: server/API_CONTRACT.md, Account deletion (FR-15).
 export const deletionUnavailable = "Account deletion is not available yet.";
+
+export const deletionScopes = {
+  applicant: "Your account, all your applications (including notes and stage history), all feedback on those applications, and every mentor link you created will be removed.",
+  mentor: "Your account, every mentor link to you, and all feedback you wrote will be removed. Applicants keep their applications.",
+  admin: "This administrator account will be removed.",
+};
+export const approvedAdminDeletionPolicy = { agreed: true, disabledOnly: true, permits: (target) => ["applicant", "mentor", "admin"].includes(target.role) };
+
+export function createAccountDeletionApi(api, actor) {
+  return {
+    self(password) { return api.request("/auth/me", { method: "DELETE", body: { password }, expectedStatus: 200 }); },
+    admin(target, password) {
+      const eligibility = adminDeletionEligibility(actor, target, approvedAdminDeletionPolicy);
+      if (!eligibility.allowed) throw new ApiError(eligibility.reason, 403);
+      return api.request(`/admin/users/${encodeURIComponent(target._id)}`, { method: "DELETE", body: { password }, expectedStatus: 200 });
+    },
+  };
+}
+export function deletionConfirmed(result, id) { return result?.deleted === true && result.id === id; }
 
 export function deletionReady({ available, onDelete, scope }) {
   return available === true && typeof onDelete === "function" && typeof scope === "string" && Boolean(scope.trim());
@@ -28,9 +48,15 @@ export function createDeletionAttempt({ execute, isConfirmed, onConfirmed }) {
       try { result = await execute(password); }
       catch (failure) {
         // Never reflect arbitrary server errors that could echo a password.
-        if (failure.status === 400 || failure.kind === "invalid-password") throw new Error("Deletion was rejected. Check your current password and account eligibility.");
-        if (failure.status === 403) throw new Error("You are not permitted to delete this account.");
+        if (failure.code === "invalid-password" || failure.kind === "invalid-password") throw new ApiError("Incorrect password.", 400, "invalid-password");
+        if (failure.code === "password-required") throw new ApiError("Enter your current password.", 400, "password-required");
+        if (failure.status === 400) throw new ApiError("Deletion was rejected. Check your current password and account eligibility.", 400);
+        if (failure.status === 403) {
+          const messages = { "last-admin": "The last administrator account cannot be deleted.", "not-disabled": "Disable this account before deleting it.", "self-delete": "You cannot delete your own account here." };
+          throw new ApiError(messages[failure.code] || "You are not permitted to delete this account.", 403, failure.code);
+        }
         if (failure.status === 401) throw new Error("Your session could not be verified. Sign in again before continuing.");
+        if (failure.status === 404) throw new ApiError("This account was not found. Refresh accounts to check its current state.", 404);
         uncertain = true;
         throw Object.assign(new Error("Deletion could not be confirmed. Check the account state before making another request; no automatic retry will occur."), { uncertain: true });
       }

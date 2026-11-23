@@ -1,5 +1,6 @@
 import MentorAccountPanel from "./MentorAccountPanel.jsx";
-import { useState } from "react";
+import { useMemo, useRef, useState } from "react";
+import { createAccountDeletionApi, createDeletionAttempt, deletionConfirmed, deletionScopes } from "../services/accountDeletion.js";
 import Header from "./Header.jsx";
 import ApplicantBoard from "../pages/ApplicantBoard.jsx";
 import ApplicantAnalytics from "../pages/ApplicantAnalytics.jsx";
@@ -9,7 +10,13 @@ import AuthenticatedMentorDashboard from "../pages/AuthenticatedMentorDashboard.
 import AuthenticatedAdminDashboard from "../pages/AuthenticatedAdminDashboard.jsx";
 
 // Authenticated navigation deliberately never mounts fixture-backed preview dashboards.
-export default function AuthenticatedDashboard({ user, api, onLogout, onProfile, warning, page, onNavigate }) {
+export default function AuthenticatedDashboard({ user, api, onLogout, onProfile, warning, page, onNavigate, onDeleted }) {
+  const latestDeleted = useRef(onDeleted);
+  latestDeleted.current = onDeleted;
+  const deleteSelf = useMemo(() => {
+    const service = createAccountDeletionApi(api, user);
+    return createDeletionAttempt({ execute: service.self, isConfirmed: (result) => deletionConfirmed(result, user.id), onConfirmed: () => latestDeleted.current() });
+  }, [api, user.id]);
   const [accountOpen, setAccountOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -35,8 +42,8 @@ export default function AuthenticatedDashboard({ user, api, onLogout, onProfile,
     {user.role === "applicant" && <ApplicantBoard api={api} active={page === "board"} onMentors={() => onNavigate("mentors")} />}
     {user.role === "applicant" && page === "analytics" && <ApplicantAnalytics api={api} />}
     {user.role === "applicant" && page === "mentors" && <ApplicantMentors api={api} onBackToBoard={() => onNavigate("board")} />}
-    {user.role === "applicant" && <ApplicantSettings api={api} accountId={user.id} active={page === "settings"} onProfile={onProfile} onLogout={logout} logoutPending={busy} logoutError={error} warning={warning} />}
-    {user.role === "mentor" && accountOpen && <MentorAccountPanel api={api} user={user} onProfile={onProfile} onClose={() => setAccountOpen(false)} onLogout={logout} logoutPending={busy} logoutError={error} warning={warning} />}
+    {user.role === "applicant" && <ApplicantSettings api={api} accountId={user.id} active={page === "settings"} onProfile={onProfile} onLogout={logout} logoutPending={busy} logoutError={error} warning={warning} onDelete={deleteSelf} deletionScope={deletionScopes.applicant} />}
+    {user.role === "mentor" && accountOpen && <MentorAccountPanel api={api} user={user} onProfile={onProfile} onClose={() => setAccountOpen(false)} onLogout={logout} logoutPending={busy} logoutError={error} warning={warning} onDelete={deleteSelf} deletionScope={deletionScopes.mentor} />}
     {user.role === "mentor" && <AuthenticatedMentorDashboard api={api} user={user} page={page} onNavigate={onNavigate} />}
     {user.role === "admin" && <AuthenticatedAdminDashboard api={api} user={user} page={page} />}
   </>;
